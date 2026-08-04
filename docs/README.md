@@ -54,6 +54,17 @@ skkuverse-app의 컨벤션을 워크스페이스 표준으로 채택. **분류 �
 | --- | --- |
 | [0001-notice-data-ownership.md](decisions/0001-notice-data-ownership.md) | accepted |
 
+### contracts (기계 판독 가능)
+
+`docs/` 바깥에 있는 유일한 예외. 산문이 아니라 도구가 읽는 계약 레지스트리다 — 위의 "스키마·수치를
+복사하지 않는다" 원칙은 그대로 지킨다. manifest는 포인터(레포·경로·생성기)만 담고, 해시와 값은
+각 소비자 레포의 `.contracts.lock.json`에 산다. 그래서 manifest는 계약 **집합**이 바뀔 때만 바뀐다.
+
+| 문서 | 요약 |
+| --- | --- |
+| [contracts/README.md](../contracts/README.md) | 크로스 레포 설정 계약 — 세 엣지, 해시 기반 lock, 일상 작업 |
+| [contracts/manifest.json](../contracts/manifest.json) | 계약 토폴로지 (생산자 · 소비자 · 생성기) |
+
 ## 문서 작성 규칙
 
 ### 1. Frontmatter (필수)

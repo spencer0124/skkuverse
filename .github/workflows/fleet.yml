@@ -1,0 +1,46 @@
+name: Contract fleet
+
+# The read-only whole-fleet view: every contract, every repo, one report.
+#
+# Deliberately NOT a cron that files issues. Each consumer repo runs its own
+# `contracts-sync.yml`, which opens a ready-to-merge PR against itself using
+# its built-in GITHUB_TOKEN — no cross-repo PAT anywhere in this system. This
+# workflow exists for the two moments a human wants the whole picture: after
+# editing the manifest, and on demand.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - 'tools/**'
+
+permissions:
+  contents: read
+
+jobs:
+  fleet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Writes the report into the run summary so a manifest edit shows its
+      # fleet-wide consequence in the PR itself, before merge.
+      #
+      # `shell: bash` is load-bearing, not decoration. The implicit shell is
+      # `bash -e {0}` — errexit but NO pipefail — so `check | tee` would take
+      # tee's exit status and this job would pass while reporting drift. Naming
+      # bash explicitly gets `bash --noprofile --norc -eo pipefail {0}`.
+      # A drift checker that always passes is worse than none.
+      #
+      # Non-blocking on pull_request, honest everywhere else. Fleet drift is
+      # never fixable in an umbrella branch — it is fixed by merging or
+      # syncing a *different* repo — and this system's governing rule is that
+      # a red check the author cannot fix in-branch is worse than no check,
+      # because it teaches you to merge anyway. On workflow_dispatch a human
+      # asked "is the fleet in sync?", so there the exit status is the answer.
+      - name: Fleet report
+        shell: bash
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        run: |
+          python3 tools/skkuverse_sync.py check --fleet --format=markdown \
+            | tee -a "$GITHUB_STEP_SUMMARY"

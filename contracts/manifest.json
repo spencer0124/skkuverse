@@ -1,0 +1,121 @@
+{
+  "manifestVersion": 1,
+  "note": "Cross-repo contract topology. Pointers only - no schema content, no hashes, no values. Hashes and extracted values live in each consumer's .contracts.lock.json, written by tools/skkuverse_sync.py. This file changes only when the SET of contracts changes.",
+
+  "repos": {
+    "crawler": { "github": "spencer0124/skkuverse-crawler", "branch": "main", "dir": "skkuverse-crawler" },
+    "server":  { "github": "spencer0124/skkuverse-server",  "branch": "main", "dir": "skkuverse-server" },
+    "app":     { "github": "spencer0124/skkuverse-app",     "branch": "main", "dir": "skkuverse-app" },
+    "ai":      { "github": "spencer0124/skkuverse-ai",      "branch": "main", "dir": "skkuverse-ai" }
+  },
+
+  "contracts": [
+    {
+      "id": "notices.sources",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "crawler",
+        "path": "py/generated/server-sources.json",
+        "derivedFrom": ["sources.json", "exclude-reasons.json"],
+        "generatedBy": "py/scripts/generate_artifacts.py :: gen_sources_json"
+      },
+      "consumers": [
+        { "repo": "server", "path": "src/notices/sources.json", "mode": "copy", "requires": ["server-build-asset"] }
+      ],
+      "note": "A transform, not a byte copy of sources.json: hasCategory/hasAuthor are derived from `strategy` via STRATEGY_FEATURES. Compare against the generated artifact, never against the SSOT."
+    },
+    {
+      "id": "notices.categories",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "crawler",
+        "path": "py/generated/server-categories.json",
+        "derivedFrom": ["categories.json", "sources.json"],
+        "generatedBy": "py/scripts/generate_artifacts.py :: gen_server_categories"
+      },
+      "consumers": [
+        { "repo": "server", "path": "src/notices/categories.json", "mode": "copy", "requires": ["server-build-asset"] }
+      ],
+      "note": "picker sourceIds are filtered (crawlAvailable OR excludeReason != null), so this differs structurally from categories.json."
+    },
+    {
+      "id": "notices.exclude-reasons",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "crawler",
+        "path": "py/generated/server-exclude-reasons.json",
+        "derivedFrom": ["exclude-reasons.json"],
+        "generatedBy": "py/scripts/generate_artifacts.py :: gen_exclude_reasons_map"
+      },
+      "consumers": [
+        { "repo": "server", "path": "src/notices/exclude-reasons.json", "mode": "copy", "requires": ["server-build-asset"] }
+      ],
+      "note": "List -> {id: label} map. tabconfig.service.ts already fails boot if a sources.json excludeReason has no entry here - that is a partial-copy detector, not a drift detector."
+    },
+    {
+      "id": "notices.tab-keys",
+      "kind": "file",
+      "status": "planned",
+      "producer": {
+        "repo": "crawler",
+        "path": "py/generated/server-categories.json"
+      },
+      "consumers": [
+        {
+          "repo": "app",
+          "path": "functions/src/notifications/tabsContract.generated.ts",
+          "mode": "generate",
+          "generator": "tabs_contract_ts"
+        }
+      ],
+      "note": "Points at the generated artifact rather than categories.json because the app must mirror what the SERVER emits, and gen_server_categories filters. Today the id/tabMode projection is identical in both. Adding a fixed tab without updating the app mirror is otherwise undetectable - the symptom is zero notifications sent, no error.",
+      "blockedBy": "Needs tabsContract.ts split into a hand-owned shim plus this generated file. Verified that the generator reproduces the current hand-typed FIXED_TAB_KEYS/KNOWN_PICKER_KEYS exactly, so adoption is a zero-diff change - but it must be based on skkuverse-app `dev`, whose tabsContract.ts already differs from `main`. Sequence it after that branch converges."
+    },
+    {
+      "id": "notices.topic-cap",
+      "kind": "constant",
+      "status": "planned",
+      "producer": {
+        "repo": "app",
+        "path": "functions/src/notifications/tabsContract.ts",
+        "symbol": "MAX_TOPICS",
+        "extract": "(?m)^export const MAX_TOPICS = (\\d+);$"
+      },
+      "consumers": [
+        {
+          "repo": "server",
+          "path": "src/notices/notices.topics.ts",
+          "symbol": "TOPIC_CAP",
+          "extract": "(?m)^const TOPIC_CAP = (\\d+);$",
+          "relation": "lte"
+        }
+      ],
+      "note": "Direction matters. The Cloud Function 400s any payload above MAX_TOPICS, so server TOPIC_CAP must stay <= app MAX_TOPICS. `lte` rather than `eq` is what keeps the ADR-0005 deploy order (app first) green at every intermediate step. See skkuverse-server/docs/decisions/0005-notice-dispatch-content-group.md.",
+      "blockedBy": "MAX_TOPICS exists only on skkuverse-app `dev` (PR #18), not on the `main` this contract tracks - while the deployed Cloud Function does have it, since the app has no deploy workflow and ships by hand. So app `main` is behind both `dev` and production, and server TOPIC_CAP=30 is currently guarded by a constant that no tracked branch carries. Activating this now would fail closed, correctly. Unblock: merge skkuverse-app dev -> main, then flip to active and run `pull --repo server`."
+    },
+    {
+      "id": "search.config",
+      "kind": "file",
+      "status": "planned",
+      "producer": { "repo": "crawler", "path": "search.json" },
+      "consumers": [
+        { "repo": "ai", "path": "app/generated/search.json", "mode": "copy" },
+        { "repo": "server", "path": "src/notices/search.json", "mode": "copy", "requires": ["server-build-asset"] }
+      ],
+      "note": "Producer does not exist yet (skkuverse-crawler docs/search-mcp-plan.md Phase 1). The ai copy is currently HAND_AUTHORED_TEMPORARY with a _provenance key and a pre-adr-007 schema. Listed while planned so the gap is visible in every `status` run rather than only in a README."
+    },
+    {
+      "id": "search.source-whitelist",
+      "kind": "file",
+      "status": "planned",
+      "producer": { "repo": "crawler", "path": "py/generated/ai-sources.json" },
+      "consumers": [
+        { "repo": "ai", "path": "app/generated/sources.json", "mode": "copy" }
+      ],
+      "note": "For the planned MCP list_sources tool. Neither side exists yet."
+    }
+  ]
+}

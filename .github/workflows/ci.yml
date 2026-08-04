@@ -1,0 +1,21 @@
+name: CI
+
+# Four repos clone tools/ from main and run it as a blocking CI gate, so a bug
+# here reddens the whole fleet at once. This job is what keeps that acceptable:
+# the tool is unpinned on purpose (pinning would mean bumping a version in four
+# repos on every tool change — the manual version management this system exists
+# to remove), so its blast radius is bounded here instead.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # No setup-python: ubuntu-latest ships python3 and the tool is
+      # stdlib-only. That is the whole reason consumers can adopt it without
+      # touching their dependency manifests.
+      - run: python3 -m unittest discover -s tools/tests -v
+      - run: python3 tools/skkuverse_sync.py validate-manifest
