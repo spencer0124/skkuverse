@@ -25,6 +25,13 @@ jobs:
       - uses: actions/checkout@v4
       # Writes the report into the run summary so a manifest edit shows its
       # fleet-wide consequence in the PR itself, before merge.
-      - run: |
+      #
+      # `shell: bash` is load-bearing, not decoration. The implicit shell is
+      # `bash -e {0}` — errexit but NO pipefail — so `check | tee` would take
+      # tee's exit status and this job would pass while reporting drift. Naming
+      # bash explicitly gets `bash --noprofile --norc -eo pipefail {0}`.
+      # A drift checker that always passes is worse than none.
+      - shell: bash
+        run: |
           python3 tools/skkuverse_sync.py check --fleet --format=markdown \
             | tee -a "$GITHUB_STEP_SUMMARY"
