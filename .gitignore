@@ -1,2 +1,6 @@
 node_modules/
 .DS_Store
+
+# tools/ is stdlib-only Python, run directly — never installed, never built.
+__pycache__/
+*.py[cod]

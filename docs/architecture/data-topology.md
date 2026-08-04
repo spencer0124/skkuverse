@@ -11,6 +11,12 @@ audience: public
 
 > "어느 데이터가 어느 레포 소유이고, 그 스키마는 어디에 문서화돼 있나"의 단일 지도. **이 문서는 스키마 필드를 복제하지 않는다** — 소유 레포의 canonical 문서를 링크만 한다.
 
+> [!NOTE]
+> 이건 **런타임 데이터**(MongoDB 컬렉션)의 소유권 맵이다. **설정 파일**의 크로스 레포 소유권은
+> 별도의 지도가 있고, 그쪽은 산문이 아니라 기계 판독 가능한 레지스트리다 —
+> [`contracts/manifest.json`](../../contracts/manifest.json) + [`contracts/README.md`](../../contracts/README.md).
+> 두 지도의 규칙은 같다: 생산자가 소유하고, 소비자는 사본을 든다.
+
 ## 소유 규칙
 
 > [!NOTE]
