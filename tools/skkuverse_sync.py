@@ -366,15 +366,28 @@ def cmd_check_repo(manifest: dict[str, Any], repo: str, root: Path) -> int:
     print(f"skkuverse contracts · integrity · {repo}")
     print()
 
+    lock = load_lock(root)
+    failures = 0
+
     if not pairs:
-        print(f"  no active contracts for {repo}")
+        # Still inspect the lock. A repo whose contracts were all retired would
+        # otherwise carry a rotten lock forever, unexamined.
+        known = {c["id"] for c in manifest["contracts"]}
+        for cid in sorted(set(lock["contracts"]) - known):
+            failures += 1
+            print(f"  FAIL  {cid}")
+            print("          In the lock but not in the manifest at all.")
+            print("          Cause: the contract was renamed or retired.")
+            print(f"          Fix:   skkuverse_sync.py pull --repo {repo}")
+        for cid in sorted(set(lock["contracts"]) & known):
+            print(f"  ahead   {cid} — locked here, not active in the manifest yet")
+        if not failures:
+            print(f"  no active contracts for {repo}")
         if planned:
             print(f"  {len(planned)} planned: {', '.join(planned)}")
         print()
-        return 0
+        return 1 if failures else 0
 
-    lock = load_lock(root)
-    failures = 0
     width = max(len(c["id"]) for c, _ in pairs)
 
     for contract, consumer in pairs:
@@ -449,14 +462,24 @@ def cmd_check_repo(manifest: dict[str, Any], repo: str, root: Path) -> int:
                 print(f"  FAIL  {cid:<{width}}  requires:{requirement}")
                 print(f"          {problem}")
 
-    stale = set(lock["contracts"]) - {c["id"] for c, _ in pairs}
-    for cid in sorted(stale):
+    # Rot is an entry for a contract the manifest no longer declares at all —
+    # renamed or retired. An entry for a contract that merely is not `active`
+    # yet is the safe transitional state: a consumer lands its lock first, the
+    # manifest flips to active after. Failing on that would leave no merge
+    # order that works, since activating first breaks the consumer's main.
+    known = {c["id"] for c in manifest["contracts"]}
+    ahead = sorted(set(lock["contracts"]) & known - {c["id"] for c, _ in pairs})
+    rotten = sorted(set(lock["contracts"]) - known)
+    for cid in rotten:
         failures += 1
         print(f"  FAIL  {cid}")
-        print("          In the lock but not an active contract for this repo.")
+        print("          In the lock but not in the manifest at all.")
+        print("          Cause: the contract was renamed or retired.")
         print(f"          Fix:   skkuverse_sync.py pull --repo {repo}")
 
     print()
+    for cid in ahead:
+        print(f"  ahead   {cid} — locked here, not active in the manifest yet")
     if planned:
         print(f"  {len(planned)} planned (skipped): {', '.join(planned)}")
     if failures:
@@ -598,11 +621,14 @@ def pull_repo(
             )
         entries[cid] = entry
 
-    stale = set(entries) - {c["id"] for c, _ in pairs}
-    for cid in sorted(stale):
+    # Drop only entries the manifest no longer declares. Keeping entries for
+    # contracts that are declared but not yet `active` is what lets a consumer
+    # land its lock before the activation flips — see cmd_check_repo.
+    known = {c["id"] for c in manifest["contracts"]}
+    for cid in sorted(set(entries) - known):
         del entries[cid]
         lock_changed = True
-        lines.append(f"{cid:<{width}}  removed    (no longer an active contract here)")
+        lines.append(f"{cid:<{width}}  removed    (no longer in the manifest)")
 
     if lock_changed:
         write_lock(root, repo, entries)
