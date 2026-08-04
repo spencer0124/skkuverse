@@ -28,10 +28,11 @@ When editing an existing file that still contains Korean, translate the parts yo
 
 ## What this repository is
 
-The umbrella repo for the SKKUverse ecosystem. Two distinct things live here:
+The umbrella repo for the SKKUverse ecosystem. Three distinct things live here:
 
 1. **`docs/`** — cross-repo knowledge only: system boundaries, data flows crossing repo lines, ownership maps, and ADRs whose consequences span repos. Repo-local knowledge belongs in that repo's own `docs/`.
-2. **`contracts/` + `tools/`** — an executable contract registry. `tools/skkuverse_sync.py` runs as a **blocking CI gate in four other repositories**, which is why this repo is not docs-only and why changes here have blast radius.
+2. **`contracts/` + `tools/skkuverse_sync.py`** — an executable contract registry. It runs as a **blocking CI gate in three other repositories** (server, app, ai — the crawler is the producer and has nothing to verify), which is why this repo is not docs-only and why changes here have blast radius.
+3. **`.gitmodules` + `repos/`** — a daily pin of every repo's `main`, written by `.github/workflows/fleet-snapshot.yml`. It is **a record, not a workspace**: never develop in it, and do not `git submodule update --init` unless you are deliberately expanding a past day. It is also where fleet membership is declared — six repos, deliberately a superset of the contract manifest's four, because those answer different questions.
 
 ## Commands
 
@@ -42,7 +43,11 @@ python3 tools/skkuverse_sync.py check --fleet       # freshness across every rep
 python3 tools/skkuverse_sync.py pull --all          # adopt upstream, rewrite locks
 python3 tools/skkuverse_sync.py explain <id>        # full chain for one contract
 python3 tools/skkuverse_sync.py validate-manifest   # schema + self-consistency
-python3 -m unittest discover -s tools/tests -v      # the tool's own tests
+
+python3 tools/fleet_snapshot.py                     # rewrite the README fleet table
+python3 tools/fleet_snapshot.py --check             # verify it, offline (what CI runs)
+
+python3 -m unittest discover -s tools/tests -v      # the tools' own tests
 ```
 
 ## Constraints that are not negotiable
@@ -55,7 +60,9 @@ python3 -m unittest discover -s tools/tests -v      # the tool's own tests
 
 **Blocking checks must be offline.** Any check that can fail a merge or a deploy compares files within a single repo. Network-dependent checks are advisory and run on a schedule. The governing rule: *a red check the author cannot fix in the current branch is worse than no check* — it teaches people to merge anyway.
 
-**Test the tool before changing it.** `.github/workflows/ci.yml` runs the unit tests plus `validate-manifest` on every PR. That job is the only thing bounding the blast radius of an unpinned tool consumed by four repos.
+**The fleet table in `README.md` is generated.** Never hand-edit between `<!-- fleet:start -->` and `<!-- fleet:end -->`; `ci.yml` fails on it. And **never add a time-relative column** — no "age", no "N days ago", no generated-at stamp. The block must be a pure function of the pinned SHAs, or the daily cron rewrites it every day even when nothing moved, `--check` becomes non-deterministic, and a quiet day stops being distinguishable from a busy one.
+
+**Test the tools before changing them.** `.github/workflows/ci.yml` runs the unit tests, `validate-manifest`, and `fleet_snapshot.py --check` on every PR. That job is the only thing bounding the blast radius of an unpinned tool consumed by three other repos.
 
 ## Documentation conventions
 

@@ -3,7 +3,7 @@ title: Container View
 type: explanation
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-04
+last-updated: 2026-08-05
 audience: public
 ---
 
@@ -64,7 +64,7 @@ graph TB
 | server | Read API + push dispatch. **Never writes `summary*`; owns exactly one read index** | read-only (+ 1 read index) | [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
 | app | Server-driven tabs, Markdown rendering, push receipt | none (via API) | [app docs](https://github.com/spencer0124/skkuverse-app/tree/main/docs) |
 | web | Marketing site | none | (pending) |
-| **this repo** | Cross-repo docs **and** the config-contract registry. `tools/skkuverse_sync.py` runs as a blocking gate in the four backend repos' CI | none | [contracts/README.md](../../contracts/README.md) |
+| **this repo** | Cross-repo docs, the config-contract registry, and the daily fleet pin. `tools/skkuverse_sync.py` runs as a blocking gate in three consumers' CI | none | [contracts/README.md](../../contracts/README.md) |
 
 ## The two runtime HTTP seams
 
@@ -94,9 +94,22 @@ Three properties worth noting:
 
 - **It is build-time, not runtime.** Every consumer reads its own vendored copy from disk at boot; nothing fetches across repos while serving.
 - **One edge runs app → server**, the opposite direction from every arrow in the runtime diagram. `MAX_TOPICS` in the Cloud Function is the ceiling the server's `TOPIC_CAP` must stay under, because the function rejects any payload above it.
-- **There is a CI-time network edge too.** All four backend repos `git clone` this repository during CI to fetch the contract tool. That makes this repo a build dependency of the fleet, which is why its own tests gate every change to it.
+- **There is a CI-time network edge too.** The three consumer repos — server, app and ai — `git clone` this repository during CI to fetch the contract tool. (The crawler is the producer and has nothing to verify, so it does not.) That makes this repo a build dependency of the fleet, which is why its own tests gate every change to it.
 
 Every edge above is declared in [`contracts/manifest.json`](../../contracts/manifest.json), pinned by content hash in each consumer's `.contracts.lock.json`, and enforced offline in CI. The rationale for the pull-based design is [ADR 0002](../decisions/0002-pull-based-config-contracts.md).
+
+## The fourth seam: a daily pin of the whole fleet
+
+The first three seams are how the repos *affect* each other. This one is how the system *records itself*.
+
+Once a day a scheduled workflow in this repository pins every repo's `main` as a git submodule under `repos/` and commits, so this repository's history becomes a day-by-day record of what the whole system was. It is the only edge that touches all six repos, the only purely observational one, and the only one with no credential in either direction — a direct extension of ADR 0002's property that no cross-repo PAT exists anywhere here.
+
+Two distinctions are worth holding onto, because both are easy to get backwards:
+
+- **`.gitmodules` and `contracts/manifest.json` answer different questions.** The manifest declares the four repos that *exchange configuration*; `.gitmodules` declares the six that *are* SKKUverse. The second is deliberately a superset, and neither is derived from the other.
+- **A pin says what `main` *was*; `check --fleet` says what `main` *is*.** `skkuverse_sync.py check --fleet` reads every repo's live `main` over the network, so the two disagree whenever anyone has pushed since the last snapshot. That is not drift — it is the difference between a photograph and a window.
+
+Recording it is necessary because git cannot reconstruct it afterwards: committer dates say when a commit was *made*, not when a branch *pointed at it*, and only a reflog holds the latter. See [ADR 0003](../decisions/0003-daily-fleet-pin-as-submodules.md).
 
 ## Related
 
@@ -105,3 +118,4 @@ Every edge above is declared in [`contracts/manifest.json`](../../contracts/mani
 - [Config Contracts](../../contracts/README.md) — the config seam in operational detail
 - [ADR 0001 — Notice data ownership](../decisions/0001-notice-data-ownership.md)
 - [ADR 0002 — Pull-based config contracts](../decisions/0002-pull-based-config-contracts.md)
+- [ADR 0003 — Daily fleet pin as submodules](../decisions/0003-daily-fleet-pin-as-submodules.md)

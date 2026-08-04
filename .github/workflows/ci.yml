@@ -19,3 +19,8 @@ jobs:
       # touching their dependency manifests.
       - run: python3 -m unittest discover -s tools/tests -v
       - run: python3 tools/skkuverse_sync.py validate-manifest
+      # Offline and index-only, so it costs nothing here even though this job
+      # checks out with submodules off. Not optional: the daily cron
+      # regenerates the README block only when a pin actually moved, so it
+      # will never silently correct a hand-edited one.
+      - run: python3 tools/fleet_snapshot.py --check
