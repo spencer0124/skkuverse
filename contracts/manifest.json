@@ -58,7 +58,7 @@
     {
       "id": "notices.tab-keys",
       "kind": "file",
-      "status": "planned",
+      "status": "active",
       "producer": {
         "repo": "crawler",
         "path": "py/generated/server-categories.json"
@@ -71,13 +71,12 @@
           "generator": "tabs_contract_ts"
         }
       ],
-      "note": "Points at the generated artifact rather than categories.json because the app must mirror what the SERVER emits, and gen_server_categories filters. Today the id/tabMode projection is identical in both. Adding a fixed tab without updating the app mirror is otherwise undetectable - the symptom is zero notifications sent, no error.",
-      "blockedBy": "Needs tabsContract.ts split into a hand-owned shim plus this generated file. Verified that the generator reproduces the current hand-typed FIXED_TAB_KEYS/KNOWN_PICKER_KEYS exactly, so adoption is a zero-diff change - but it must be based on skkuverse-app `dev`, whose tabsContract.ts already differs from `main`. Sequence it after that branch converges."
+      "note": "Points at the generated artifact rather than categories.json because the app must mirror what the SERVER emits, and gen_server_categories filters. Today the id/tabMode projection is identical in both. Adding a fixed tab without updating the app mirror is otherwise undetectable - the symptom is zero notifications sent, no error."
     },
     {
       "id": "notices.topic-cap",
       "kind": "constant",
-      "status": "planned",
+      "status": "active",
       "producer": {
         "repo": "app",
         "path": "functions/src/notifications/tabsContract.ts",
@@ -93,8 +92,7 @@
           "relation": "lte"
         }
       ],
-      "note": "Direction matters. The Cloud Function 400s any payload above MAX_TOPICS, so server TOPIC_CAP must stay <= app MAX_TOPICS. `lte` rather than `eq` is what keeps the ADR-0005 deploy order (app first) green at every intermediate step. See skkuverse-server/docs/decisions/0005-notice-dispatch-content-group.md.",
-      "blockedBy": "MAX_TOPICS exists only on skkuverse-app `dev` (PR #18), not on the `main` this contract tracks - while the deployed Cloud Function does have it, since the app has no deploy workflow and ships by hand. So app `main` is behind both `dev` and production, and server TOPIC_CAP=30 is currently guarded by a constant that no tracked branch carries. Activating this now would fail closed, correctly. Unblock: merge skkuverse-app dev -> main, then flip to active and run `pull --repo server`."
+      "note": "Direction matters. The Cloud Function 400s any payload above MAX_TOPICS, so server TOPIC_CAP must stay <= app MAX_TOPICS. `lte` rather than `eq` is what keeps the ADR-0005 deploy order (app first) green at every intermediate step. See skkuverse-server/docs/decisions/0005-notice-dispatch-content-group.md."
     },
     {
       "id": "search.config",
