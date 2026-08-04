@@ -3,24 +3,24 @@ title: Notice Pipeline (End-to-End)
 type: explanation
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-07-24
+last-updated: 2026-08-04
 audience: public
 ---
 
 # Notice Pipeline (End-to-End)
 
-> AI 공지 기능의 전체 흐름 — 학과 사이트 크롤링부터 앱 화면 렌더까지, 6개 레포를 가로지르는 하나의 경로. 정적 구조는 [컨테이너 뷰](../architecture/container-view.md), 데이터 소유는 [데이터 토폴로지](../architecture/data-topology.md).
+> The full path of the AI notice feature — from crawling a department site to rendering on screen, as one route across six repos. The static structure is in [Container View](../architecture/container-view.md); data ownership in [Data Topology](../architecture/data-topology.md).
 
-## 한 문장
+## In one sentence
 
-**"공지 원문을 크롤러가 수집·정제해 Mongo에 쓰고 → AI가 LLM 1콜로 구조화 요약을 붙이고 → 서버가 읽어 서빙하며 푸시를 오케스트레이션하고 → 앱이 렌더한다. 메시지 큐 없이 Mongo를 버스로, 동기 HTTP 시임은 딱 2개."**
+**The crawler collects and cleans a notice into Mongo → the AI service attaches a structured summary in a single LLM call → the server reads it, serves it, and orchestrates the push → the app renders it. No message queue: Mongo is the bus, and there are exactly two synchronous HTTP seams.**
 
-## 시퀀스
+## Sequence
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant S as SKKU 학과 사이트
+    participant S as SKKU department site
     participant C as crawler
     participant M as MongoDB (notices)
     participant AI as ai (FastAPI)
@@ -28,51 +28,53 @@ sequenceDiagram
     participant F as Firebase CF → FCM
     participant A as app
 
-    Note over C: cron */30 — 수집
-    C->>S: HTTP GET (rate-limited, Semaphore)
+    Note over C: cron — collect
+    C->>S: HTTP GET (rate-limited, semaphore)
     S-->>C: HTML
-    C->>C: 증분 dedup · clean html→markdown · contentHash
-    C->>M: upsert 원문 (summary* 없음)
+    C->>C: incremental dedup · clean html→markdown · contentHash
+    C->>M: upsert body (no summary* yet)
 
-    Note over C: cron 매시 20분 — 요약
-    C->>M: find_unsummarized + find_stale (hash 불일치)
-    M-->>C: 미요약 배치
+    Note over C: cron — summarize
+    C->>M: find_unsummarized + find_stale (hash mismatch)
+    M-->>C: batch awaiting summary
     C->>AI: POST /api/notices/summarize {title, category, cleanText, date}
-    AI->>AI: 언어감지 · LLM 1콜(structured) · pydantic 검증 · (실패시 self-repair)
+    AI->>AI: detect language · one structured LLM call · pydantic validation · self-repair on failure
     AI-->>C: {oneLiner, summary, type, periods[], locations[], details, model}
-    C->>M: $set summary* (성공 시 11개 필드 / 실패 시 $inc summaryFailures)
+    C->>M: $set summary* on success / $inc summaryFailures on failure
 
-    Note over C,N: 사이클 끝 — 디스패치
+    Note over C,N: end of cycle — dispatch
     C->>N: POST /internal/notices/dispatch-pending (X-Internal-Token, fire-and-forget)
-    N->>M: aiSummaryAt 게이트로 claim-lease sweep
-    N->>F: 푸시 전송 위임 (topic = sourceId 기반)
-    F->>A: FCM 푸시
-    A->>N: (사용자 진입) GET /notices/*
-    N-->>A: 리스트=oneLiner+type pill / 상세=summary.text + periods/locations
+    N->>M: claim-lease sweep gated on aiSummaryAt
+    N->>F: delegate push (topics derived from sourceId)
+    F->>A: FCM push
+    A->>N: (user opens) GET /notices/*
+    N-->>A: list = oneLiner + type pill / detail = summary text + periods and locations
 ```
 
-## 레포별 담당 구간
+## Who owns which segment
 
-| 구간 | 레포 | 무엇을 하나 | 상세 문서 |
+| Segment | Repo | What it does | Detail |
 | --- | --- | --- | --- |
-| 수집·정제 | **crawler** | 크롤 전략 9종, 증분 dedup, html→markdown, `contentHash` | [crawler docs](https://github.com/spencer0124/skkuverse-crawler/tree/main/docs) |
-| 저장 스키마 | **crawler** | `notices` 문서 + `summary*` 11개 필드 (SSOT) | [crawler `reference/schema/notices.md`](https://github.com/spencer0124/skkuverse-crawler/tree/main/docs) |
-| 요약·분류 | **ai** | LLM 1콜 구조화 추출, 3-type 분류, litellm 3중 fallback, "절대 500 안 냄" | [ai `explanation/notice-summarization.md`](https://github.com/spencer0124/skkuverse-ai/tree/main/docs) *(신설 예정)* |
-| 서빙·디스패치 | **server** | 읽기 API, 읽기 인덱스, claim-lease 푸시 sweep | [server `reference/notices-api.md`](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
-| 렌더·전달 | **app** | 서버 주도 탭, 마크다운 렌더, FCM 수신 | [app `explanation/notices-feature.md`](https://github.com/spencer0124/skkuverse-app/tree/main/docs) |
+| Collect and clean | **crawler** | Per-site crawl strategies, incremental dedup, html→markdown, `contentHash` | [crawler docs](https://github.com/spencer0124/skkuverse-crawler/tree/main/docs) |
+| Storage schema | **crawler** | The `notices` document and the `summary*` field family (SSOT) | [crawler `docs/notice-schema.md`](https://github.com/spencer0124/skkuverse-crawler/blob/main/docs/notice-schema.md) |
+| Summarize and classify | **ai** | One structured LLM call, three-way type classification, litellm fallback, never returns 500 | [ai docs](https://github.com/spencer0124/skkuverse-ai/tree/main/docs) *(a dedicated summarization design doc is still pending)* |
+| Serve and dispatch | **server** | Read API, read index, claim-lease push sweep | [server `docs/reference/notices-api.md`](https://github.com/spencer0124/skkuverse-server/blob/main/docs/reference/notices-api.md) |
+| Render and deliver | **app** | Server-driven tabs, Markdown rendering, FCM receipt | [app docs](https://github.com/spencer0124/skkuverse-app/tree/main/docs) |
 
-## 설계 포인트 3가지
+The tab configuration that drives the first and last rows is itself a cross-repo contract — the crawler owns it, the server vendors it, and the app's Cloud Function mirrors the tab keys. See [Config Contracts](../../contracts/README.md).
 
-1. **비동기 요약 (`summaryAt` null 게이트)**: 크롤은 요약을 기다리지 않는다. 원문을 먼저 저장하고, 요약은 나중에 "붙는다". 앱은 `summaryAt: null`이면 "요약 준비 중"을 보여준다.
-2. **이중 타임스탬프 (`summaryAt` vs `aiSummaryAt`)**: 하나는 크롤러 내부 "요약됨" 마커, 하나는 서버 FCM 디스패치 게이트 — 의도적으로 분리해 재요약이 재푸시를 유발하지 않게 한다.
-3. **`type` 3분류의 용도**: `action_required | event | informational`은 downstream에서 **"마감 의미 해석"** 에만 쓰인다 (학과/장학 같은 분류는 크롤러 `category` 메타 담당). 근거는 [ai 요약 설계 문서](https://github.com/spencer0124/skkuverse-ai/tree/main/docs).
+## Three design points
+
+1. **Summaries attach asynchronously (the `summaryAt` null gate).** Crawling never waits on summarization. The body is stored first and the summary catches up later; the app shows "summary pending" while `summaryAt` is null.
+2. **Two timestamps, deliberately (`summaryAt` vs `aiSummaryAt`).** One is the crawler's internal "summarized" marker, the other is the server's FCM dispatch gate. Keeping them separate is what stops a re-summarization from triggering a second push.
+3. **What the three-way `type` is for.** `action_required | event | informational` is used downstream **only to interpret deadlines**. Subject classification (department, scholarship, …) is the crawler's `category` metadata, a different axis entirely.
 
 > [!NOTE]
-> 필드 개수·이름·크론 표현식 등 구체 값은 각 소유 레포의 코드가 SSOT다. 이 문서는 흐름의 형태를 설명하고, 값은 링크된 문서에서 확인한다.
+> Concrete values — field counts, field names, cron expressions — are owned by each repo's code. This document describes the shape of the flow; look up the values in the linked documents.
 
-## 관련 문서
+## Related
 
-- [시스템 컨텍스트](../architecture/system-context.md)
-- [컨테이너 뷰](../architecture/container-view.md)
-- [데이터 토폴로지](../architecture/data-topology.md)
-- [ADR 0001 — 공지 데이터 소유권](../decisions/0001-notice-data-ownership.md)
+- [System Context](../architecture/system-context.md)
+- [Container View](../architecture/container-view.md)
+- [Data Topology](../architecture/data-topology.md)
+- [ADR 0001 — Notice data ownership](../decisions/0001-notice-data-ownership.md)

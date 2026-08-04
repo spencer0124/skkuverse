@@ -1,37 +1,38 @@
 ---
-title: <Title Case 제목>
+title: <Title Case>
 type: explanation
 status: draft
 owner: zoyoong124@gmail.com
-last-updated: 2026-07-24
+last-updated: YYYY-MM-DD
 audience: public
 ---
 
-# <제목>
+# <Title>
 
-> 한 줄 요약: 이 문서가 무엇이고 누가 읽어야 하는지.
+> One-line summary: what this document is, and who should read it.
 
 <!--
-type별 권장 섹션 골격 — 해당 type의 섹션만 남기고 나머지는 삭제.
+Section skeletons by `type` — keep the one that matches, delete the rest.
+Write everything in English (see ../CLAUDE.md).
 
-■ explanation / architecture (메커니즘·배경)
-  ## 문제 / 맥락
-  ## 구조 (다이어그램)
-  ## 근거 / 트레이드오프
-  ## 관련 문서
+- explanation (mechanism and background; lives in architecture/ or flows/)
+    ## Context
+    ## Structure (diagram)
+    ## Rationale / trade-offs
+    ## Related
 
-■ reference (계약·지도)
-  ## 요약
-  ## <표 중심 섹션들>
-  ## 관련 문서
+- reference (contracts and maps)
+    ## Summary
+    ## <table-driven sections>
+    ## Related
 
-■ adr (docs/decisions/NNNN-kebab-title.md)
-  ## Status
-  ## Context
-  ## Decision
-  ## Consequences
+- adr (decisions/NNNN-kebab-title.md)
+    ## Status
+    ## Context
+    ## Decision
+    ## Consequences
 -->
 
-## 관련 문서
+## Related
 
-- [docs/README.md](README.md) — 작성 규칙
+- [docs/README.md](README.md) — writing rules

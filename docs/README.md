@@ -3,75 +3,78 @@ title: Docs Index & Conventions
 type: reference
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-07-24
+last-updated: 2026-08-04
 audience: internal
 ---
 
 # Docs Index & Conventions
 
-> skkuverse(시스템 문서 허브)의 인덱스이자 작성 규칙. 이 레포는 **레포 경계를 넘는(cross-cutting) 지식 전용** — 레포 국소 지식은 각 레포의 `docs/`에 둔다.
+> The index and the writing rules for the SKKUverse documentation hub. This repository holds **cross-cutting knowledge only** — anything local to one repo belongs in that repo's `docs/`.
 
-## 이 레포가 담는 것 / 담지 않는 것
+## What belongs here
 
-| 담는다 (cross-repo) | 담지 않는다 (레포 국소) |
+| Belongs here (cross-repo) | Does not (repo-local) |
 | --- | --- |
-| 시스템 경계·아키텍처 다이어그램 | 특정 레포의 빌드/배포 런북 |
-| 레포를 가로지르는 데이터 흐름 (공지 파이프라인) | 한 컬렉션의 상세 스키마 (→ 소유 레포) |
-| 데이터 소유권 맵 (누가 무엇을 쓰나) | 프레임워크별 구현 디테일 |
-| 레포 경계를 넘는 ADR | 한 레포 안에서 끝나는 ADR |
+| System boundaries and architecture diagrams | One repo's build or deploy runbook |
+| Data flows that cross repo lines (the notice pipeline) | The detailed schema of one collection (→ owning repo) |
+| Ownership maps — who writes what | Framework-specific implementation detail |
+| ADRs whose consequences cross repos | ADRs that begin and end in one repo |
 
-**원칙: 스키마/수치를 여기 복사하지 않는다.** 이 레포는 *인덱스이자 지도*다 — 상세는 소유 레포의 문서를 링크한다. ([데이터 토폴로지](architecture/data-topology.md)가 그 지도.)
+**Rule: never copy a schema or a number into this repo.** This is an *index and a map* — link to the owning repo's document for detail. ([Data Topology](architecture/data-topology.md) is that map for runtime data; [`contracts/manifest.json`](../contracts/manifest.json) is the machine-readable one for config.)
 
-## 폴더 구조 (Diátaxis)
+## Folder structure (Diátaxis)
 
-skkuverse-app의 컨벤션을 워크스페이스 표준으로 채택. **분류 기준은 주제가 아니라 독자의 니즈.**
+Adopted from skkuverse-app's convention as the workspace standard. **Documents are filed by the reader's need, not by topic.**
 
-| 폴더 | 니즈 | 내용 |
+| Folder | Diátaxis need | Contents |
 | --- | --- | --- |
-| `architecture/` | 이해하기 | 시스템 경계·컨테이너 뷰·데이터 토폴로지 (C4) |
-| `flows/` | 이해하기 | 레포를 가로지르는 end-to-end 흐름 |
-| `decisions/` | — | cross-repo ADR (`NNNN-kebab-title.md`) |
+| `architecture/` | Explanation — *understand* | System boundary, container view, data topology (C4) |
+| `flows/` | Explanation — *understand* | End-to-end flows that cross repos |
+| `decisions/` | (ADR) | Cross-repo ADRs, `NNNN-kebab-title.md` |
+| `../contracts/` | Reference — *look up* | The config-contract registry. Lives outside `docs/` because `manifest.json` is read by tooling, not by people; the prose beside it follows every rule on this page. |
 
-## 문서 인덱스
+## Document index
 
 ### architecture
 
-| 문서 | 요약 |
+| Document | Summary |
 | --- | --- |
-| [system-context.md](architecture/system-context.md) | C4 L1 — 시스템 경계와 외부 접점 |
-| [container-view.md](architecture/container-view.md) | C4 L2 — 6개 레포 + MongoDB + FCM의 맞물림 |
-| [data-topology.md](architecture/data-topology.md) | DB/컬렉션별 소유 레포 + 스키마 문서 링크 |
+| [system-context.md](architecture/system-context.md) | C4 L1 — the system boundary and its external touchpoints |
+| [container-view.md](architecture/container-view.md) | C4 L2 — how the repos, MongoDB and FCM interlock, plus the build-time config seam |
+| [data-topology.md](architecture/data-topology.md) | Which repo owns which database and collection, with links to each schema |
 
 ### flows
 
-| 문서 | 요약 |
+| Document | Summary |
 | --- | --- |
-| [notice-pipeline.md](flows/notice-pipeline.md) | AI 공지 end-to-end (크롤 → AI → 서빙 → 푸시 → 렌더) |
+| [notice-pipeline.md](flows/notice-pipeline.md) | The AI notice feature end to end (crawl → AI → serve → push → render) |
 
 ### decisions
 
-| 문서 | 상태 |
+| Document | Status |
 | --- | --- |
 | [0001-notice-data-ownership.md](decisions/0001-notice-data-ownership.md) | accepted |
+| [0002-pull-based-config-contracts.md](decisions/0002-pull-based-config-contracts.md) | accepted |
 
-### contracts (기계 판독 가능)
+### contracts (machine-readable)
 
-`docs/` 바깥에 있는 유일한 예외. 산문이 아니라 도구가 읽는 계약 레지스트리다 — 위의 "스키마·수치를
-복사하지 않는다" 원칙은 그대로 지킨다. manifest는 포인터(레포·경로·생성기)만 담고, 해시와 값은
-각 소비자 레포의 `.contracts.lock.json`에 산다. 그래서 manifest는 계약 **집합**이 바뀔 때만 바뀐다.
+The only material outside `docs/`. It is a registry read by tooling rather than prose — but the *point at the source, don't copy the value* rule above still holds: the manifest carries pointers only (repos, paths, generators), while hashes and values live in each consumer's `.contracts.lock.json`. That is why the manifest changes only when the **set** of contracts changes.
 
-| 문서 | 요약 |
+| File | Summary |
 | --- | --- |
-| [contracts/README.md](../contracts/README.md) | 크로스 레포 설정 계약 — 세 엣지, 해시 기반 lock, 일상 작업 |
-| [contracts/manifest.json](../contracts/manifest.json) | 계약 토폴로지 (생산자 · 소비자 · 생성기) |
+| [contracts/README.md](../contracts/README.md) | How the contract system works — three edges, hash locks, day-to-day commands |
+| [contracts/manifest.json](../contracts/manifest.json) | Contract topology (producer, consumers, generators). Two of its entries are `planned` rather than `active` |
+| [tools/skkuverse_sync.py](../tools/skkuverse_sync.py) | The tool that enforces it. Runs as a blocking gate in four other repos' CI |
+| [.github/workflows/ci.yml](../.github/workflows/ci.yml) | Unit tests + `validate-manifest` — what bounds this repo's blast radius |
+| [.github/workflows/fleet.yml](../.github/workflows/fleet.yml) | On-demand fleet-wide freshness report |
 
-## 문서 작성 규칙
+## Writing rules
 
-### 1. Frontmatter (필수)
+### 1. Frontmatter (required)
 
 ```yaml
 ---
-title: <Title Case 제목>
+title: <Title Case>
 type: reference | explanation | adr
 status: draft | accepted | superseded | deprecated
 owner: zoyoong124@gmail.com
@@ -80,30 +83,39 @@ audience: internal | public
 ---
 ```
 
-포트폴리오로 공개되는 문서는 `audience: public`. 개인 준비 자료(인터뷰 노트 등)는 `audience: internal`.
+Required on **every document listed in the index above**, including the ones outside `docs/` such as [`contracts/README.md`](../contracts/README.md). `audience: public` for anything published as portfolio; `audience: internal` for private working notes.
 
-### 2. 골격
+Exempt: the two repo-root entry points, [`README.md`](../README.md) and [`CLAUDE.md`](../CLAUDE.md). GitHub renders frontmatter as a table, which does not belong on a landing page, and neither file is a catalogued document — one is the front door, the other is tooling configuration.
 
-frontmatter → `# H1`(정확히 하나) → `> 한 줄 요약` → `##` 섹션(레벨 건너뛰기 금지). 새 문서는 [`_template.md`](_template.md) 복사.
+Update `last-updated` in the same commit that changes the body. A stale date is the cheapest possible lie.
 
-### 3. 값을 복사하지 말고 출처를 가리켜라
+### 2. Skeleton
 
-버전·수치·개수·스키마 필드를 이 레포에 하드코딩하지 않는다. 다른 레포의 코드가 바뀌면 이곳이 조용히 거짓말을 시작한다.
+frontmatter → exactly one `# H1` → `> one-line summary` → `##` sections, no skipped levels. Copy [`_template.md`](_template.md) to start.
 
-- ❌ `크롤 소스는 149개다`
-- ✅ `크롤 소스 목록의 SSOT는 skkuverse-crawler의 sources.json` (개수는 "작성 시점 기준 ~149" 정도로만)
+### 3. Point at the source, don't copy the value
 
-### 4. 다이어그램
+Never hardcode a version, count, or schema field from another repo. When that repo changes, this one starts lying silently.
 
-- **Mermaid**를 기본으로 쓴다 (GitHub 네이티브 렌더, 빌드 불필요). 코드펜스 `mermaid`.
-- 다이어그램이 Mermaid로 감당 안 될 때만 `diagrams/`에 PlantUML/C4 소스를 둔다.
+- ❌ `there are 149 crawl sources`
+- ✅ `the source list's SSOT is skkuverse-crawler's sources.json` (a count only as "~149 at time of writing", if at all)
 
-### 5. 파일명·서식
+### 4. Diagrams
 
-- kebab-case 소문자 `.md`. ADR은 `NNNN-kebab-title.md`.
-- 코드펜스 언어 태그 필수. 구조화된 사실은 표로. 본문 한국어, 기술 용어 영어.
+- **Mermaid by default** — GitHub renders it natively, no build step. Use a `mermaid` code fence.
+- Only when Mermaid genuinely cannot express it, put PlantUML/C4 sources in `diagrams/`.
 
-## 관련
+### 5. Language
 
-- [워크스페이스 랜딩](../README.md)
-- [skkuverse-app 문서 컨벤션(원본 표준)](https://github.com/spencer0124/skkuverse-app/tree/main/docs)
+**English, everywhere.** Prose, headings, diagram labels, table cells, code comments in samples. The one carve-out is Korean product copy quoted *as data* — user-facing strings shipped to the app. See [CLAUDE.md](../CLAUDE.md) for the full policy and its rationale.
+
+### 6. Filenames and formatting
+
+- Lowercase kebab-case `.md`. ADRs are `NNNN-kebab-title.md`.
+- Code fences always carry a language tag. Structured facts go in tables.
+
+## Related
+
+- [Workspace landing page](../README.md)
+- [CLAUDE.md](../CLAUDE.md) — working conventions, including the language policy
+- [skkuverse-app docs conventions](https://github.com/spencer0124/skkuverse-app/tree/main/docs) — the original standard this adopts

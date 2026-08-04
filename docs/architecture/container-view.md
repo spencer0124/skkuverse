@@ -3,37 +3,39 @@ title: Container View
 type: explanation
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-07-24
+last-updated: 2026-08-04
 audience: public
 ---
 
 # Container View
 
-> 시스템 안쪽 — 6개 레포와 MongoDB·Firebase가 어떻게 맞물리나 (C4 Level 2). 위 단계는 [시스템 컨텍스트](system-context.md), 이 그림이 실제로 흐르는 모습은 [공지 파이프라인](../flows/notice-pipeline.md).
+> Inside the system — how six repos, MongoDB and Firebase interlock (C4 Level 2). One level out: [System Context](system-context.md). This picture in motion: [Notice Pipeline](../flows/notice-pipeline.md).
 
-## 핵심 아이디어: DB-as-bus, 두 개의 평면
+## The core idea: DB-as-bus, two planes
 
-메시지 큐가 없다. **MongoDB Atlas 하나를 버스(bus)로** 쓰고, 그 위에 동기 HTTP 시임(seam) 2개만 얹었다.
+There is no message queue. **A single MongoDB Atlas acts as the bus**, with only two synchronous HTTP seams on top of it.
 
-- **쓰기/수집 평면 (Python)**: 크롤러가 원문을 수집·정제해 Mongo에 쓰고, AI 서버(stateless)에 요약을 위임받아 같은 문서에 덧쓴다.
-- **읽기/서빙 평면 (NestJS)**: 서버는 Mongo를 읽어 API로 서빙하고, 푸시 디스패치만 오케스트레이션한다 (전송 자체는 Firebase Cloud Function에 위임).
+- **Ingest plane (Python)**: the crawler collects and cleans notice bodies into Mongo, and delegates summarization to a stateless AI service whose output it writes back onto the same document.
+- **Serving plane (NestJS)**: the server reads Mongo and serves the API, orchestrating push dispatch without sending anything itself (delivery is delegated to a Firebase Cloud Function).
 
-두 평면은 서로를 직접 호출하지 않는다 — **Mongo를 통해 비동기로 만나고**, 동기 HTTP는 딱 두 곳(크롤러→AI 요약, 크롤러→서버 디스패치 핑)뿐이다.
+The two planes never call each other directly — **they meet asynchronously through Mongo**. At runtime, synchronous HTTP happens in exactly two places: crawler → AI, and crawler → server.
 
-## 다이어그램
+There is a third coupling between these repos, and it is easy to miss because it carries no runtime traffic at all: **shared configuration**. See [Config seam](#the-third-seam-config-at-build-time) below.
+
+## Diagram
 
 ```mermaid
 graph TB
-    subgraph write["쓰기 / 수집 평면 (Python)"]
+    subgraph write["Ingest plane (Python)"]
         crawler["crawler<br/>httpx · BeautifulSoup · motor · APScheduler"]
         ai["ai<br/>FastAPI · litellm (stateless)"]
     end
 
-    subgraph read["읽기 / 서빙 평면 (NestJS)"]
+    subgraph read["Serving plane (NestJS)"]
         server["server<br/>NestJS · TS strict"]
     end
 
-    subgraph clients["클라이언트"]
+    subgraph clients["Clients"]
         app["app<br/>Expo · RN"]
         web["web<br/>Next.js"]
     end
@@ -41,35 +43,65 @@ graph TB
     mongo[("MongoDB Atlas<br/>(the bus)")]
     cf["Firebase<br/>Cloud Function → FCM"]
 
-    crawler -->|upsert 원문| mongo
-    crawler -->|① POST /summarize (동기 HTTP)| ai
-    ai -.->|요약 반환| crawler
+    crawler -->|upsert notice body| mongo
+    crawler -->|① POST /summarize, sync HTTP| ai
+    ai -.->|summary payload| crawler
     crawler -->|$set summary*| mongo
-    crawler -->|② POST /dispatch-pending (동기 HTTP)| server
+    crawler -->|② POST /dispatch-pending, sync HTTP| server
     server -->|read-only| mongo
-    server -->|push 위임| cf
+    server -->|delegate push| cf
     cf -->|FCM| app
     app -->|read API| server
     web -->|read API| server
 ```
 
-## 컨테이너별 책임과 소유
+## Responsibility and ownership
 
-| 컨테이너 | 책임 | Mongo 관계 | 문서 |
+| Container | Responsibility | Mongo relationship | Docs |
 | --- | --- | --- | --- |
-| crawler | 크롤·정제·요약 오케스트레이션. `notices`/`schedule`(+예정 `restaurant`) **문서와 유니크 인덱스 소유** | 주 writer | [crawler docs](https://github.com/spencer0124/skkuverse-crawler/tree/main/docs) |
-| ai | 공지 원문 → 구조화 요약. **상태 없음, DB 접근 없음** | 없음 | [ai docs](https://github.com/spencer0124/skkuverse-ai/tree/main/docs) |
-| server | 읽기 API + 푸시 디스패치. **`summary*` 안 씀, 읽기 인덱스 1개만 소유** | read-only (+ 1 read index) | [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
-| app | 서버 주도 탭 + 마크다운 렌더 + 푸시 수신 | 없음 (API 경유) | [app docs](https://github.com/spencer0124/skkuverse-app/tree/main/docs) |
-| web | 마케팅 웹 | 없음 | (예정) |
+| crawler | Crawl, clean, orchestrate summarization. **Owns the documents and unique indexes** for `notices` and `schedule` | primary writer | [crawler docs](https://github.com/spencer0124/skkuverse-crawler/tree/main/docs) |
+| ai | Notice body → structured summary. **Stateless, no DB access** | none | [ai docs](https://github.com/spencer0124/skkuverse-ai/tree/main/docs) |
+| server | Read API + push dispatch. **Never writes `summary*`; owns exactly one read index** | read-only (+ 1 read index) | [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
+| app | Server-driven tabs, Markdown rendering, push receipt | none (via API) | [app docs](https://github.com/spencer0124/skkuverse-app/tree/main/docs) |
+| web | Marketing site | none | (pending) |
+| **this repo** | Cross-repo docs **and** the config-contract registry. `tools/skkuverse_sync.py` runs as a blocking gate in the four backend repos' CI | none | [contracts/README.md](../../contracts/README.md) |
 
-두 HTTP 시임:
+## The two runtime HTTP seams
 
-- **① 크롤러 → AI** (`POST /api/notices/summarize`): Docker 네트워크 내부, 인증 없음(네트워크 격리). 요약이 비동기로 "붙는" 유일한 경로.
-- **② 크롤러 → 서버** (`POST /internal/notices/dispatch-pending`): 사이클 끝에 fire-and-forget 핑. `X-Internal-Token`. 안전망으로 서버측 30분 cron sweep 병행.
+- **① crawler → ai** (`POST /api/notices/summarize`): inside the Docker network, unauthenticated (isolation is the network's job). The only path by which a summary gets attached.
+- **② crawler → server** (`POST /internal/notices/dispatch-pending`): a fire-and-forget ping at the end of each cycle, authenticated with `X-Internal-Token`. A server-side cron sweep runs in parallel as a safety net.
 
-## 관련 문서
+## The third seam: config at build time
 
-- [공지 파이프라인](../flows/notice-pipeline.md) — 이 그림의 동적 시퀀스
-- [데이터 토폴로지](data-topology.md) — 버스(Mongo) 위 컬렉션 소유권
-- [ADR 0001 — 공지 데이터 소유권](../decisions/0001-notice-data-ownership.md)
+Some configuration is owned by one repo and vendored by others. It moves no packets at runtime, so it does not appear in the diagram above — but it is a real dependency edge, and for years it was the least visible one in the system.
+
+```mermaid
+graph LR
+    csrc["crawler<br/>sources.json · categories.json<br/>exclude-reasons.json (SSOT)"]
+    cgen["crawler<br/>py/generated/*.json<br/>(committed artifacts)"]
+    srv["server<br/>src/notices/*.json"]
+    appgen["app<br/>tabsContract.generated.ts"]
+    cap["app<br/>MAX_TOPICS"]
+    srvcap["server<br/>TOPIC_CAP"]
+
+    csrc -->|codegen| cgen
+    cgen -->|copy| srv
+    cgen -->|generate| appgen
+    cap -->|ceiling, TOPIC_CAP <= MAX_TOPICS| srvcap
+```
+
+Three properties worth noting:
+
+- **It is build-time, not runtime.** Every consumer reads its own vendored copy from disk at boot; nothing fetches across repos while serving.
+- **One edge runs app → server**, the opposite direction from every arrow in the runtime diagram. `MAX_TOPICS` in the Cloud Function is the ceiling the server's `TOPIC_CAP` must stay under, because the function rejects any payload above it.
+- **There is a CI-time network edge too.** All four backend repos `git clone` this repository during CI to fetch the contract tool. That makes this repo a build dependency of the fleet, which is why its own tests gate every change to it.
+
+Every edge above is declared in [`contracts/manifest.json`](../../contracts/manifest.json), pinned by content hash in each consumer's `.contracts.lock.json`, and enforced offline in CI. The rationale for the pull-based design is [ADR 0002](../decisions/0002-pull-based-config-contracts.md).
+
+## Related
+
+- [Notice Pipeline](../flows/notice-pipeline.md) — the dynamic sequence of this picture
+- [Data Topology](data-topology.md) — collection ownership on the bus
+- [Config Contracts](../../contracts/README.md) — the config seam in operational detail
+- [ADR 0001 — Notice data ownership](../decisions/0001-notice-data-ownership.md)
+- [ADR 0002 — Pull-based config contracts](../decisions/0002-pull-based-config-contracts.md)
