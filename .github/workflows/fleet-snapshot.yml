@@ -1,0 +1,157 @@
+name: Fleet snapshot
+
+# A day-by-day record of what every SKKUverse repo's `main` was.
+#
+# Six repos ship independently and none of them records the others' state, so
+# "what was the whole system on 2026-08-05?" had no answer anywhere — not in a
+# lock file, not in a deploy log, not in this repo. Worse, git cannot
+# reconstruct it after the fact: `git rev-list --before=<date> main` filters
+# *all reachable commits* by date, so it happily returns a commit that sat on
+# `dev` for days before being merged. Nothing stores a branch's historical tip
+# except a reflog, which is local and expires. So the answer has to be
+# recorded as it happens, or it is gone.
+#
+# This pins each repo's `main` as a git submodule once a day and commits the
+# result. A gitlink is twenty bytes, so forty-five megabytes of fleet is
+# recorded as a few hundred bytes a day — and any commit in this repo's
+# history can be expanded back into the actual code of all six repos as they
+# were that day, with `git submodule update --init`.
+#
+# Read-only towards every sibling: it fetches their public `main` and writes
+# nothing back. ADR 0002's governing property is that no cross-repo PAT exists
+# anywhere in this system, and this workflow does not introduce one — the only
+# credential in play is this repo's own GITHUB_TOKEN pushing to this repo.
+# That is also why all six repos must stay public; see ADR 0003.
+#
+# Commits every day, including days when nothing moved. The empty commits are
+# the liveness record. They cost nothing structurally, because an empty commit
+# touches no paths — so `git log` is the daily heartbeat and `git log -- repos/`
+# is still the change-only view. Two timelines, one history.
+on:
+  schedule:
+    # 14:40 UTC = 23:40 KST. End of the working day in Seoul.
+    #
+    # Load-bearing: every UTC time before 15:00 shares its calendar date with
+    # KST, so this run's UTC date and its KST date are the same day. That is
+    # what makes `--before=<date>` mean one thing to every reader. 15:00 UTC
+    # is already 00:00 the next day in KST — do not move this past 14:xx.
+    #
+    # Off the hour because GitHub's scheduler is most congested at :00 and
+    # silently delays runs there. 7h20m clear of the three contracts-sync
+    # crons at '0 21 * * *'.
+    - cron: '40 14 * * *'
+  workflow_dispatch:
+
+# Elevated only here. The repo default is `read`, so omitting this block is a
+# 403 on push, and no other workflow gains write access by our declaring it.
+# A GITHUB_TOKEN push creates no workflow runs, so this cannot loop; and
+# ci.yml fires only on pull_request, so pushing to main runs nothing at all.
+permissions:
+  contents: write
+
+# Queue, never cancel. A cancelled run loses that day's snapshot permanently —
+# there is no way to reconstruct it tomorrow.
+concurrency:
+  group: fleet-snapshot
+  cancel-in-progress: false
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Through env, not inline ${{ }} in a shell body, which is a script
+      # injection surface. Pushing to HEAD:$BRANCH rather than a bare push
+      # means a workflow_dispatch on a feature branch commits to that branch —
+      # the only way to rehearse this end to end before merging.
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      # submodules: false is deliberate, not a default left alone. checkout
+      # would try to restore the SHAs recorded yesterday; we want today's
+      # `main`, and a sibling that force-pushed would fail that checkout for a
+      # commit we are about to replace anyway.
+      #
+      # fetch-depth: 0 is load-bearing — pushing from a shallow clone fails
+      # with "shallow update not allowed".
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      # --remote is the whole workflow. It ignores the SHA recorded here and
+      # takes each submodule's `submodule.<name>.branch` from the remote
+      # instead — `main`, set explicitly in .gitmodules because git's default
+      # is the remote's *default branch*, and every repo in this fleet also
+      # has a live `dev`. Because the recorded SHA is never read, a force-push
+      # in a sibling cannot break this run.
+      #
+      # Not shallow on purpose: --depth and --remote together is the fragile
+      # corner of git's submodule code, and Actions minutes are free on a
+      # public repo. ~45 MB of fetch a day buys a command that cannot
+      # half-work.
+      - name: Pin every repo's main
+        run: |
+          git submodule sync
+          git submodule update --init --remote --force
+
+      - name: Did anything move?
+        id: moved
+        run: |
+          if git diff --quiet -- repos; then
+            echo "moved=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "moved=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --submodule=log -- repos
+          fi
+
+      # Byte-identical output when nothing moved, so running it unconditionally
+      # keeps the commit empty on quiet days rather than producing a spurious
+      # README diff. The generator has no time-relative columns precisely so
+      # this holds.
+      - name: Regenerate the fleet snapshot
+        run: python3 tools/fleet_snapshot.py
+
+      - name: Commit and push
+        shell: bash
+        env:
+          MOVED: ${{ steps.moved.outputs.moved }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          date_kst="$(TZ=Asia/Seoul date +%F)"
+
+          # Captured before `git add`, while the submodule change is still
+          # unstaged. --submodule=log renders "old..new (n)" plus every commit
+          # subject in the range, so `git show <commit>` reads as "what moved
+          # that day".
+          if [ "$MOVED" = "true" ]; then
+            subject="chore(fleet): pin main as of ${date_kst} KST"
+            body="$(git --no-pager diff --submodule=log -- repos)"
+          else
+            subject="chore(fleet): pin main as of ${date_kst} KST (no change)"
+            body="No repo's main moved since the last snapshot."
+          fi
+
+          git add -- repos README.md
+          # --allow-empty so every calendar date gets a row even on quiet days.
+          # The empty commits touch no paths, so `git log -- repos/` still
+          # filters to just the days something actually moved.
+          git commit --allow-empty -m "$subject" -m "$body"
+          git push origin "HEAD:$BRANCH"
+
+      - name: Summary
+        if: always()
+        shell: bash
+        env:
+          MOVED: ${{ steps.moved.outputs.moved }}
+        run: |
+          {
+            echo "## Fleet snapshot · $(TZ=Asia/Seoul date +'%F %H:%M') KST"
+            echo
+            if [ "$MOVED" = "true" ]; then
+              git --no-pager show --submodule=log --stat --oneline HEAD | head -40
+            else
+              echo "No repo's \`main\` moved since the last snapshot."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

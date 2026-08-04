@@ -55,6 +55,7 @@ Adopted from skkuverse-app's convention as the workspace standard. **Documents a
 | --- | --- |
 | [0001-notice-data-ownership.md](decisions/0001-notice-data-ownership.md) | accepted |
 | [0002-pull-based-config-contracts.md](decisions/0002-pull-based-config-contracts.md) | accepted |
+| [0003-daily-fleet-pin-as-submodules.md](decisions/0003-daily-fleet-pin-as-submodules.md) | accepted |
 
 ### contracts (machine-readable)
 
@@ -64,9 +65,19 @@ The only material outside `docs/`. It is a registry read by tooling rather than 
 | --- | --- |
 | [contracts/README.md](../contracts/README.md) | How the contract system works — three edges, hash locks, day-to-day commands |
 | [contracts/manifest.json](../contracts/manifest.json) | Contract topology (producer, consumers, generators). Two of its entries are `planned` rather than `active` |
-| [tools/skkuverse_sync.py](../tools/skkuverse_sync.py) | The tool that enforces it. Runs as a blocking gate in four other repos' CI |
-| [.github/workflows/ci.yml](../.github/workflows/ci.yml) | Unit tests + `validate-manifest` — what bounds this repo's blast radius |
+| [tools/skkuverse_sync.py](../tools/skkuverse_sync.py) | The tool that enforces it. Runs as a blocking gate in three consumers' CI (server, app, ai) |
+| [.github/workflows/ci.yml](../.github/workflows/ci.yml) | Unit tests, `validate-manifest`, and the fleet-block check — what bounds this repo's blast radius |
 | [.github/workflows/fleet.yml](../.github/workflows/fleet.yml) | On-demand fleet-wide freshness report |
+
+### fleet snapshot
+
+A separate concern from contracts, and deliberately a wider scope: contracts cover the four repos that exchange config, while the fleet pin covers all six. It records *what `main` was* on each date, which git cannot reconstruct after the fact — see [ADR 0003](decisions/0003-daily-fleet-pin-as-submodules.md).
+
+| File | Summary |
+| --- | --- |
+| [.gitmodules](../.gitmodules) | Fleet membership — six repos, each pinned to `main` |
+| [.github/workflows/fleet-snapshot.yml](../.github/workflows/fleet-snapshot.yml) | The daily cron that pins every repo's `main` and commits |
+| [tools/fleet_snapshot.py](../tools/fleet_snapshot.py) | Renders those pins into the landing page; `--check` gates it in CI |
 
 ## Writing rules
 
