@@ -31,7 +31,16 @@ jobs:
       # tee's exit status and this job would pass while reporting drift. Naming
       # bash explicitly gets `bash --noprofile --norc -eo pipefail {0}`.
       # A drift checker that always passes is worse than none.
-      - shell: bash
+      #
+      # Non-blocking on pull_request, honest everywhere else. Fleet drift is
+      # never fixable in an umbrella branch — it is fixed by merging or
+      # syncing a *different* repo — and this system's governing rule is that
+      # a red check the author cannot fix in-branch is worse than no check,
+      # because it teaches you to merge anyway. On workflow_dispatch a human
+      # asked "is the fleet in sync?", so there the exit status is the answer.
+      - name: Fleet report
+        shell: bash
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         run: |
           python3 tools/skkuverse_sync.py check --fleet --format=markdown \
             | tee -a "$GITHUB_STEP_SUMMARY"
