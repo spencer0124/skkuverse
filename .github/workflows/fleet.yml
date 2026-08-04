@@ -1,0 +1,30 @@
+name: Contract fleet
+
+# The read-only whole-fleet view: every contract, every repo, one report.
+#
+# Deliberately NOT a cron that files issues. Each consumer repo runs its own
+# `contracts-sync.yml`, which opens a ready-to-merge PR against itself using
+# its built-in GITHUB_TOKEN — no cross-repo PAT anywhere in this system. This
+# workflow exists for the two moments a human wants the whole picture: after
+# editing the manifest, and on demand.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - 'tools/**'
+
+permissions:
+  contents: read
+
+jobs:
+  fleet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Writes the report into the run summary so a manifest edit shows its
+      # fleet-wide consequence in the PR itself, before merge.
+      - run: |
+          python3 tools/skkuverse_sync.py check --fleet --format=markdown \
+            | tee -a "$GITHUB_STEP_SUMMARY"
