@@ -294,7 +294,8 @@ class TestCheckRepoFiles(CheckRepoCase):
         self.assertEqual(code, 1)
         self.assertIn("No entry", out)
 
-    def test_stale_lock_entry_fails(self):
+    def test_lock_entry_for_an_unknown_contract_fails(self):
+        """Rot: renamed or retired, so the manifest no longer declares it."""
         self.write("src/a.json", self.BODY)
         self.write_lock({
             "t.file": {"path": "src/a.json", "sha256": sync.sha256(self.BODY.encode())},
@@ -303,6 +304,23 @@ class TestCheckRepoFiles(CheckRepoCase):
         code, out = run(sync.cmd_check_repo, FILE_MANIFEST, "server", self.root)
         self.assertEqual(code, 1)
         self.assertIn("t.retired", out)
+        self.assertIn("not in the manifest at all", out)
+
+    def test_lock_entry_ahead_of_activation_passes(self):
+        """A consumer must be able to land its lock BEFORE the manifest flips
+        the contract to active — otherwise no merge order works: activating
+        first breaks the consumer's main (no lock entry yet), and locking
+        first would be rejected as stale.
+        """
+        manifest = json.loads(json.dumps(FILE_MANIFEST))
+        manifest["contracts"][0]["status"] = "planned"
+        self.write("src/a.json", self.BODY)
+        self.write_lock({"t.file": {
+            "path": "src/a.json", "sha256": sync.sha256(self.BODY.encode()),
+        }})
+        code, out = run(sync.cmd_check_repo, manifest, "server", self.root)
+        self.assertEqual(code, 0, out)
+        self.assertIn("ahead", out)
 
     def test_check_is_offline(self):
         """Every blocking check must work with no network at all — otherwise
@@ -585,3 +603,21 @@ class TestValidateManifest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRetiredContractLockRot(CheckRepoCase):
+    """A repo can end up with no active contracts — every one retired. Its
+    lock must still be examined, or it carries rot forever unexamined."""
+
+    EMPTY = {"manifestVersion": 1, "repos": FILE_MANIFEST["repos"], "contracts": []}
+
+    def test_rotten_entry_fails_even_with_no_active_contracts(self):
+        self.write_lock({"t.gone": {"path": "x.json", "sha256": "0" * 64}})
+        code, out = run(sync.cmd_check_repo, self.EMPTY, "server", self.root)
+        self.assertEqual(code, 1)
+        self.assertIn("not in the manifest at all", out)
+
+    def test_empty_lock_with_no_active_contracts_passes(self):
+        self.write_lock({})
+        code, out = run(sync.cmd_check_repo, self.EMPTY, "server", self.root)
+        self.assertEqual(code, 0, out)
