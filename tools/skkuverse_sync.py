@@ -235,6 +235,42 @@ def read_local(root: Path, path: str) -> bytes | None:
     return target.read_bytes() if target.is_file() else None
 
 
+def git_head(root: Path) -> str:
+    proc = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        capture_output=True, text=True,
+    )
+    return proc.stdout.strip() if proc.returncode == 0 else "unknown"
+
+
+def read_local_producer(root: Path, path: str, label: str) -> tuple[bytes | None, str]:
+    """Read a producer file from a working tree, refusing uncommitted content.
+
+    Baking a hash that exists only on someone's disk into a consumer's lock
+    is the bootstrapping failure this system is supposed to prevent: CI reads
+    git, so the consumer would go red against a producer state no runner can
+    ever see.
+    """
+    content = read_local(root, path)
+    if content is None:
+        return None, git_head(root)
+    proc = subprocess.run(
+        ["git", "-C", str(root), "show", f"HEAD:{path}"], capture_output=True,
+    )
+    if proc.returncode != 0:
+        raise ContractError(
+            f"{label}:{path} exists on disk but not in git HEAD.\n"
+            f"  Commit it first — a lock must reference content CI can fetch."
+        )
+    if proc.stdout != content:
+        raise ContractError(
+            f"{label}:{path} has uncommitted changes "
+            f"(HEAD {short(sha256(proc.stdout))}, worktree {short(sha256(content))}).\n"
+            f"  Commit them first — a lock must reference content CI can fetch."
+        )
+    return content, git_head(root)
+
+
 def git_branch(root: Path) -> str:
     proc = subprocess.run(
         ["git", "-C", str(root), "rev-parse", "--abbrev-ref", "HEAD"],
@@ -463,8 +499,9 @@ def pull_repo(
         producer_cfg = manifest["repos"][producer["repo"]]
 
         if local:
-            commit = "local"
-            producer_bytes = read_local(local_root(manifest, producer["repo"]), producer["path"])
+            producer_bytes, commit = read_local_producer(
+                local_root(manifest, producer["repo"]), producer["path"], producer["repo"],
+            )
         else:
             commit = resolve_ref(producer_cfg)
             producer_bytes = fetch_raw(producer_cfg, commit, producer["path"])
@@ -575,8 +612,23 @@ def pull_repo(
 
 
 def _entry_content(entry: dict[str, Any]) -> dict[str, Any]:
-    """An entry minus syncedAt — the part that decides whether it changed."""
-    return {k: v for k, v in entry.items() if k != "syncedAt"}
+    """The part of an entry that decides whether it actually changed.
+
+    Drops two purely informational fields:
+
+      syncedAt          — a timestamp; comparing it would make every `pull`
+                          dirty every repo.
+      producer.commit   — provenance. The *hash* is the contract; the commit
+                          only says where that hash was seen. Excluding it
+                          means a `--local` pull and a later remote pull of
+                          identical content agree, instead of producing a
+                          spurious diff over a sha nobody compares.
+    """
+    trimmed = {k: v for k, v in entry.items() if k != "syncedAt"}
+    producer = trimmed.get("producer")
+    if isinstance(producer, dict):
+        trimmed["producer"] = {k: v for k, v in producer.items() if k != "commit"}
+    return trimmed
 
 
 def cmd_pull(

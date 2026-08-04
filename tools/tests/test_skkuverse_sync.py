@@ -432,6 +432,72 @@ class TestLocks(unittest.TestCase):
         b = {"sha256": "x", "syncedAt": "2026-08-04T00:00:00Z"}
         self.assertEqual(sync._entry_content(a), sync._entry_content(b))
 
+    def test_producer_commit_is_not_part_of_identity(self):
+        """The hash is the contract; the commit only records where it was
+        seen. Otherwise a --local pull and a later remote pull of identical
+        content would diff over a sha nothing compares."""
+        a = {"sha256": "x", "producer": {"sha256": "y", "commit": "aaa"}}
+        b = {"sha256": "x", "producer": {"sha256": "y", "commit": "bbb"}}
+        self.assertEqual(sync._entry_content(a), sync._entry_content(b))
+
+    def test_producer_sha_is_part_of_identity(self):
+        a = {"sha256": "x", "producer": {"sha256": "y", "commit": "aaa"}}
+        b = {"sha256": "x", "producer": {"sha256": "z", "commit": "aaa"}}
+        self.assertNotEqual(sync._entry_content(a), sync._entry_content(b))
+
+
+class TestLocalProducerGuard(unittest.TestCase):
+    """`pull --local` must not bake a hash that exists only on disk.
+
+    CI reads git. A lock referencing an uncommitted producer state points at
+    something no runner can ever fetch, so the consumer goes red forever.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        self.git("init", "-q")
+        self.git("config", "user.email", "t@t")
+        self.git("config", "user.name", "t")
+
+    def git(self, *args: str) -> None:
+        import subprocess
+        subprocess.run(["git", "-C", str(self.root), *args], check=True,
+                       capture_output=True)
+
+    def write(self, rel: str, text: str) -> None:
+        (self.root / rel).write_text(text, encoding="utf-8")
+
+    def test_committed_content_is_accepted_with_its_sha(self):
+        self.write("a.json", "{}\n")
+        self.git("add", "a.json")
+        self.git("commit", "-qm", "add")
+        content, commit = sync.read_local_producer(self.root, "a.json", "crawler")
+        self.assertEqual(content, b"{}\n")
+        self.assertEqual(len(commit), 40)
+
+    def test_uncommitted_change_raises(self):
+        self.write("a.json", "{}\n")
+        self.git("add", "a.json")
+        self.git("commit", "-qm", "add")
+        self.write("a.json", '{"drift": true}\n')
+        with self.assertRaises(sync.ContractError) as ctx:
+            sync.read_local_producer(self.root, "a.json", "crawler")
+        self.assertIn("uncommitted", str(ctx.exception))
+
+    def test_untracked_file_raises(self):
+        self.write("a.json", "{}\n")
+        self.git("commit", "-qm", "empty", "--allow-empty")
+        with self.assertRaises(sync.ContractError) as ctx:
+            sync.read_local_producer(self.root, "a.json", "crawler")
+        self.assertIn("not in git HEAD", str(ctx.exception))
+
+    def test_absent_file_returns_none(self):
+        self.git("commit", "-qm", "empty", "--allow-empty")
+        content, _ = sync.read_local_producer(self.root, "nope.json", "crawler")
+        self.assertIsNone(content)
+
     def test_lock_warns_against_hand_editing(self):
         sync.write_lock(self.root, "server", {})
         note = sync.load_lock(self.root)["note"]
