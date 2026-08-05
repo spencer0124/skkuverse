@@ -1,24 +1,24 @@
-[submodule "repos/skkuverse-server"]
-	path = repos/skkuverse-server
+[submodule "skkuverse-server"]
+	path = skkuverse-server
 	url = https://github.com/spencer0124/skkuverse-server.git
 	branch = main
-[submodule "repos/skkuverse-crawler"]
-	path = repos/skkuverse-crawler
+[submodule "skkuverse-crawler"]
+	path = skkuverse-crawler
 	url = https://github.com/spencer0124/skkuverse-crawler.git
 	branch = main
-[submodule "repos/skkuverse-ai"]
-	path = repos/skkuverse-ai
+[submodule "skkuverse-ai"]
+	path = skkuverse-ai
 	url = https://github.com/spencer0124/skkuverse-ai.git
 	branch = main
-[submodule "repos/skkuverse-app"]
-	path = repos/skkuverse-app
+[submodule "skkuverse-app"]
+	path = skkuverse-app
 	url = https://github.com/spencer0124/skkuverse-app.git
 	branch = main
-[submodule "repos/skkuverse.com"]
-	path = repos/skkuverse.com
+[submodule "skkuverse.com"]
+	path = skkuverse.com
 	url = https://github.com/spencer0124/skkuverse.com.git
 	branch = main
-[submodule "repos/skkuverse-codepush"]
-	path = repos/skkuverse-codepush
+[submodule "skkuverse-codepush"]
+	path = skkuverse-codepush
 	url = https://github.com/spencer0124/skkuverse-codepush.git
 	branch = main

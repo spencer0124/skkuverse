@@ -102,7 +102,7 @@ Every edge above is declared in [`contracts/manifest.json`](../../contracts/mani
 
 The first three seams are how the repos *affect* each other. This one is how the system *records itself*.
 
-Once a day a scheduled workflow in this repository pins every repo's `main` as a git submodule under `repos/` and commits, so this repository's history becomes a day-by-day record of what the whole system was. It is the only edge that touches all six repos, the only purely observational one, and the only one with no credential in either direction — a direct extension of ADR 0002's property that no cross-repo PAT exists anywhere here.
+Once a day a scheduled workflow in this repository pins every repo's `main` as a git submodule at the repository root and commits, so this repository's history becomes a day-by-day record of what the whole system was. It is the only edge that touches all six repos, the only purely observational one, and the only one with no credential in either direction — a direct extension of ADR 0002's property that no cross-repo PAT exists anywhere here.
 
 Two distinctions are worth holding onto, because both are easy to get backwards:
 

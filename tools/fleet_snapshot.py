@@ -2,8 +2,8 @@
 """Render the pinned state of every SKKUverse repo into README.md.
 
 `.github/workflows/fleet-snapshot.yml` pins each repo's `main` as a submodule
-under `repos/` once a day. Those pins are the record; this script is the
-rendering that puts them on the landing page.
+at the repository root once a day. Those pins are the record; this script is
+the rendering that puts them on the landing page.
 
 Two modes, deliberately asymmetric:
 
@@ -126,17 +126,17 @@ def pins() -> dict[str, str]:
     The index is what this repo commits. A submodule working tree can be
     stale, uninitialised, or mid-update, so it is not the source of truth for
     what is being recorded.
+
+    Scans every gitlink rather than a fixed directory, so the layout can move
+    without this needing to know — the submodules lived under `repos/` before
+    they were promoted to the repository root.
     """
     out: dict[str, str] = {}
-    for line in git("ls-files", "--stage", "--", "repos").splitlines():
+    for line in git("ls-files", "--stage").splitlines():
         meta, path = line.split("\t", 1)
         mode, sha, _stage = meta.split()
-        if mode != SUBMODULE_MODE:
-            raise SnapshotError(
-                f"{path} is under repos/ but is not a submodule (mode {mode}). "
-                f"repos/ holds pins only."
-            )
-        out[path] = sha
+        if mode == SUBMODULE_MODE:
+            out[path] = sha
     return out
 
 
@@ -187,7 +187,7 @@ def render() -> str:
             )
         sha = pinned[path]
         date, subject = commit_meta(path, sha)
-        name = path.split("/", 1)[1] if "/" in path else path
+        name = path.rsplit("/", 1)[-1]
         rows.append(
             f"| {name} | [`{sha[:7]}`]({url}/commit/{sha}) | {date} | {cell(subject)} |"
         )

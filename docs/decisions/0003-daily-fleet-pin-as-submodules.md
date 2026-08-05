@@ -9,7 +9,7 @@ audience: public
 
 # ADR 0003 — Daily fleet pin as git submodules
 
-> Every repo's `main` is pinned as a submodule under `repos/` once a day and committed, making this repository's history a day-by-day record of what the whole system was.
+> Every repo's `main` is pinned as a submodule at the repository root once a day and committed, making this repository's history a day-by-day record of what the whole system was.
 
 ## Status
 
@@ -34,12 +34,12 @@ So the state has to be recorded as it happens or it is lost. A secondary need po
 
 ## Decision
 
-**A scheduled workflow pins every repo's `main` as a git submodule under `repos/` once a day and commits, and a generated table renders those pins onto the landing page.**
+**A scheduled workflow pins every repo's `main` as a git submodule at the repository root once a day and commits, and a generated table renders those pins onto the landing page.**
 
 | Element | Choice |
 | --- | --- |
-| Mechanism | Git submodules — a gitlink **is** the SHA, so `git ls-tree <commit> repos/` is machine-readable with no parsing |
-| Layout | `repos/`, keeping the repository root readable |
+| Mechanism | Git submodules — a gitlink **is** the SHA, so `git ls-tree <commit>` is machine-readable with no parsing |
+| Layout | Repository root — each submodule sits at `<repo-name>/`, so the fleet is the first thing the front page shows |
 | Scope | All six repos — `.gitmodules` becomes the declaration of fleet membership, deliberately a superset of the contract manifest's four |
 | Branch | `branch = main` set explicitly on every entry |
 | Schedule | `40 14 * * *` — 23:40 KST, once daily |
@@ -51,7 +51,7 @@ Three details carry more weight than they look:
 
 **14:40 UTC is chosen, not arbitrary.** Every UTC time before 15:00 shares its calendar date with KST (UTC+9), so a run's UTC date and its KST date are the same day. That is what lets `--before=<date>` mean one thing to every reader. Moving the schedule past 14:xx breaks it.
 
-**Empty commits are the liveness record**, and they cost nothing structurally: an empty commit touches no paths, so `git log` is the daily heartbeat while `git log -- repos/` still filters to exactly the days something moved. Two timelines out of one history.
+**Empty commits are the liveness record**, and they cost nothing structurally: an empty commit touches no paths, so `git log` is the daily heartbeat while `git log -- 'skkuverse*'` still filters to exactly the days something moved. Two timelines out of one history.
 
 The generated README block must remain a **pure function of the pinned SHAs** — no "age", no "N days ago", no generated-at stamp. Any time-relative column would rewrite the block daily even when nothing moved, making the CI check non-deterministic and erasing the difference between a quiet day and a busy one.
 
@@ -65,7 +65,7 @@ The generated README block must remain a **pure function of the pinned SHAs** �
 - ⚠️ **A missed run is unrecoverable.** If GitHub drops a scheduled run, that day's state cannot be reconstructed later — that is the whole premise. Daily commits at least make the gap *visible* as a missing date.
 - ⚠️ **A renamed sibling fails silently.** GitHub's redirects keep git working while the `url` in `.gitmodules` quietly becomes wrong. This is the only silent failure in the design.
 - ⚠️ Branch protection on this repo's `main` would break the bot push. There is none today. If it is ever added, `github-actions[bot]` needs a bypass — switching to a pull-request flow would be a real downgrade, since a snapshot that needs a merge click is not a snapshot.
-- ⚠️ `repos/` is a record, not a workspace. Never develop in it; the sibling checkouts one level up are the workspace.
+- ⚠️ The submodule directories are a record, not a workspace. Never develop in them; your own checkouts outside this repo are the workspace.
 
 ## Alternatives considered
 
