@@ -19,15 +19,15 @@ see, and both are the kind that survive a careful read:
                 the spread, and every readability metric in Vale's Readability
                 package computes a mean, which is by construction blind to it.
 
-This runs only in this repository's CI. tools/conventions_lint.py is a blocking
+This runs only in this repository's CI. exported/lint_conventions.py is a blocking
 gate inside three sibling repos, and a sibling should not go red over a style
 opinion formed here.
 
-    prose_metrics.py --root .
-    prose_metrics.py --root . --only bold
-    prose_metrics.py --root . --report        # print the numbers, exit 0
+    prose.py --root .
+    prose.py --root . --only bold
+    prose.py --root . --report        # print the numbers, exit 0
 
-Stdlib only, same as the rest of tools/.
+Stdlib only, same as everything under `internal/`.
 """
 
 from __future__ import annotations
@@ -209,7 +209,7 @@ def run(root: Path, only: list[str], report: bool) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="prose_metrics.py",
+        prog="prose.py",
         description="Structural prose checks that Vale cannot express.",
     )
     parser.add_argument("--root", default=".", help="repository root to check")

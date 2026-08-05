@@ -5,7 +5,7 @@ that matters most is a false positive: a check that fails a merge for
 something legitimate teaches people to bypass it, and then it guards nothing.
 Most of these tests are therefore about what must NOT be reported.
 
-    python3 -m unittest discover -s tools/tests -v
+    python3 -m unittest discover -s tests -v
 """
 
 from __future__ import annotations
@@ -17,15 +17,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parents[1]
-UMBRELLA_ROOT = TOOLS_DIR.parent
+UMBRELLA_ROOT = Path(__file__).resolve().parents[1]
+EXPORTED_DIR = UMBRELLA_ROOT / "exported"
 
 _spec = importlib.util.spec_from_file_location(
-    "conventions_lint", TOOLS_DIR / "conventions_lint.py",
+    "lint_conventions", EXPORTED_DIR / "lint_conventions.py",
 )
 assert _spec is not None and _spec.loader is not None
 cl = importlib.util.module_from_spec(_spec)
-sys.modules["conventions_lint"] = cl
+sys.modules["lint_conventions"] = cl
 _spec.loader.exec_module(cl)
 
 

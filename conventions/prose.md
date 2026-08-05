@@ -21,8 +21,9 @@ vale --glob='!skkuverse*/**' .               # what ci.yml runs
 vale docs/architecture/container-view.md     # one file
 ```
 
-Vale is a single static Go binary with no runtime. It never enters `tools/`, which is what
-lets `tools/` stay stdlib-only Python while the fleet still gets a prose gate. The glob
+Vale is a single static Go binary with no runtime. It never enters `exported/`, which is
+what lets the exported scripts stay stdlib-only while the fleet still gets a prose gate.
+The glob
 excludes the submodule directories, since those record other repositories and each one
 lints its own writing.
 

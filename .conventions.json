@@ -1,5 +1,5 @@
 {
-  "_note": "Per-repo exceptions to the shared conventions. Kept in the repo it exempts, so whoever adds an exception declares it in the same commit. Checked by tools/conventions_lint.py.",
+  "_note": "Per-repo exceptions to the shared conventions. Kept in the repo it exempts, so whoever adds an exception declares it in the same commit. Checked by exported/lint_conventions.py.",
 
   "productCopy": [],
 

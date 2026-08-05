@@ -5,7 +5,7 @@ failure modes that matter are the quiet ones: a table broken by a commit
 subject from another repo, output that differs between machines, or a block
 that drifts from the pins without anything noticing.
 
-    python3 -m unittest discover -s tools/tests -v
+    python3 -m unittest discover -s tests -v
 """
 
 from __future__ import annotations
@@ -18,15 +18,15 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parents[1]
-UMBRELLA_ROOT = TOOLS_DIR.parent
+UMBRELLA_ROOT = Path(__file__).resolve().parents[1]
+RENDER_DIR = UMBRELLA_ROOT / "internal" / "render"
 
 _spec = importlib.util.spec_from_file_location(
-    "fleet_snapshot", TOOLS_DIR / "fleet_snapshot.py",
+    "fleet_table", RENDER_DIR / "fleet_table.py",
 )
 assert _spec is not None and _spec.loader is not None
 fs = importlib.util.module_from_spec(_spec)
-sys.modules["fleet_snapshot"] = fs
+sys.modules["fleet_table"] = fs
 _spec.loader.exec_module(fs)
 
 
@@ -123,14 +123,14 @@ class TestNoSelfDirtyingOutput(unittest.TestCase):
     def test_date_format_is_absolute_in_code(self):
         """render() only forwards whatever commit_meta returns, so the
         absolute-date guarantee lives in the git format string."""
-        source = (TOOLS_DIR / "fleet_snapshot.py").read_text(encoding="utf-8")
+        source = (RENDER_DIR / "fleet_table.py").read_text(encoding="utf-8")
         self.assertIn("--date=format-local:%Y-%m-%d", source)
         self.assertNotIn("--date=relative", source)
 
     def test_timezone_is_pinned_in_code(self):
         """Not read from the ambient environment, or a laptop in KST and a UTC
         runner would produce different bytes for identical pins."""
-        source = (TOOLS_DIR / "fleet_snapshot.py").read_text(encoding="utf-8")
+        source = (RENDER_DIR / "fleet_table.py").read_text(encoding="utf-8")
         self.assertIn('COMMIT_TZ = "Asia/Seoul"', source)
         self.assertIn('env={"TZ": COMMIT_TZ', source)
 
@@ -163,7 +163,9 @@ class TestAgainstTheRealRepo(unittest.TestCase):
 
     def test_readme_block_matches_the_index(self):
         code, _out = run(fs.check)
-        self.assertEqual(code, 0, "README block is stale — run tools/fleet_snapshot.py")
+        self.assertEqual(
+            code, 0, "README block is stale — run internal/render/fleet_table.py"
+        )
 
     def test_check_rejects_a_tampered_sha(self):
         readme = UMBRELLA_ROOT / "README.md"

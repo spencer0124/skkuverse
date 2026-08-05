@@ -21,7 +21,7 @@ Those need different mechanisms, and conflating them is why the previous attempt
 | Kind | Example | Mechanism | Where it lives |
 | --- | --- | --- | --- |
 | A file | markdownlint rules, the doc template, the Vale config | Contract: vendored, hash-locked, CI-enforced | `conventions/`, declared in [`../contracts/manifest.json`](../contracts/manifest.json) |
-| A property | "no Korean outside product copy", "every doc has frontmatter" | Linter: [`../tools/conventions_lint.py`](../tools/conventions_lint.py) and [`../tools/prose_metrics.py`](../tools/prose_metrics.py) | run in each repo's CI |
+| A property | "no Korean outside product copy", "every doc has frontmatter" | Linter: [`../exported/lint_conventions.py`](../exported/lint_conventions.py) and [`../internal/check/prose.py`](../internal/check/prose.py) | run in each repo's CI |
 | A GitHub feature | `CONTRIBUTING.md`, issue templates | Default community health files | [`spencer0124/.github`](https://github.com/spencer0124/.github) |
 
 No new machinery was built for the first row. A shared config file is precisely "one repo
@@ -63,9 +63,9 @@ though it lives under `docs/` because the umbrella uses it itself.
 Run them against any repo, including from a sibling's CI:
 
 ```bash
-python3 tools/conventions_lint.py --root .
-python3 tools/conventions_lint.py --root . --only language
-python3 tools/prose_metrics.py --root . --report
+python3 exported/lint_conventions.py --root .
+python3 exported/lint_conventions.py --root . --only language
+python3 internal/check/prose.py --root . --report
 ```
 
 | Check | Tool | Rule |
@@ -120,7 +120,7 @@ The tool comes from the umbrella clone the repo's CI already makes for
 - name: Fetch contract tooling
   run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
 - name: Conventions
-  run: python3 "$RUNNER_TEMP/sv/tools/conventions_lint.py" --root .
+  run: python3 "$RUNNER_TEMP/sv/exported/lint_conventions.py" --root .
 ```
 
 `--only` exists for repos mid-migration. Adopt `frontmatter` and `structure` first, then

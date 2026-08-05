@@ -5,7 +5,7 @@ are the ones Vale got wrong: markup inside fenced code, frontmatter read as
 prose, and run-in headings mistaken for emphasis. A false positive here is
 worse than a miss, because it teaches people to ignore the check.
 
-    python3 -m unittest discover -s tools/tests -v
+    python3 -m unittest discover -s tests -v
 """
 
 from __future__ import annotations
@@ -16,14 +16,14 @@ import textwrap
 import unittest
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parents[1]
+UMBRELLA_ROOT = Path(__file__).resolve().parents[1]
 
 _spec = importlib.util.spec_from_file_location(
-    "prose_metrics", TOOLS_DIR / "prose_metrics.py",
+    "prose", UMBRELLA_ROOT / "internal" / "check" / "prose.py",
 )
 assert _spec is not None and _spec.loader is not None
 pm = importlib.util.module_from_spec(_spec)
-sys.modules["prose_metrics"] = pm
+sys.modules["prose"] = pm
 _spec.loader.exec_module(pm)
 
 
@@ -165,13 +165,13 @@ class TestTargetSelection(unittest.TestCase):
     def test_submodule_directories_are_skipped(self):
         """They record other repositories. A finding there is not fixable in
         this branch, which is the rule this repository holds itself to."""
-        root = Path(pm.__file__).resolve().parents[1]
+        root = UMBRELLA_ROOT
         names = [p.relative_to(root).as_posix() for p in pm.targets(root)]
         self.assertTrue(names, "expected to find markdown in the repository")
         self.assertFalse([n for n in names if n.startswith("skkuverse")])
 
     def test_vale_styles_are_skipped(self):
-        root = Path(pm.__file__).resolve().parents[1]
+        root = UMBRELLA_ROOT
         names = [p.relative_to(root).as_posix() for p in pm.targets(root)]
         self.assertFalse([n for n in names if n.startswith("styles/")])
 
@@ -179,7 +179,7 @@ class TestTargetSelection(unittest.TestCase):
 class TestAgainstTheRepository(unittest.TestCase):
     def test_this_repository_passes(self):
         """The repository defining the rule has to satisfy it."""
-        root = Path(pm.__file__).resolve().parents[1]
+        root = UMBRELLA_ROOT
         findings = []
         for path in pm.targets(root):
             text = path.read_text(encoding="utf-8")

@@ -13,7 +13,8 @@ on:
     branches: [main]
     paths:
       - 'contracts/**'
-      - 'tools/**'
+      - 'exported/**'
+      - 'internal/**'
 
 permissions:
   contents: read
@@ -41,5 +42,5 @@ jobs:
         shell: bash
         continue-on-error: ${{ github.event_name == 'pull_request' }}
         run: |
-          python3 tools/skkuverse_sync.py check --fleet --format=markdown \
+          python3 exported/sync_contracts.py check --fleet --format=markdown \
             | tee -a "$GITHUB_STEP_SUMMARY"

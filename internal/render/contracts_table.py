@@ -11,17 +11,17 @@ reports it. A generated line cannot be wrong.
     contracts_table.py           rewrite the block
     contracts_table.py --check   verify it (what ci.yml runs)
 
-Unlike fleet_snapshot.py, `--check` here verifies the block completely: it
+Unlike fleet_table.py, `--check` here verifies the block completely: it
 re-renders from the manifest and compares byte for byte. Every input is a file
 in this repository, so there is nothing the check has to take on trust. The
 fleet block cannot do this because its date and subject columns live inside
 submodule objects that CI does not check out.
 
-The same constraint as fleet_snapshot.py applies: the output is a pure function
+The same constraint as fleet_table.py applies: the output is a pure function
 of the manifest. No timestamps, no "last synced", nothing that changes when the
 manifest does not.
 
-Stdlib only, same as the rest of tools/.
+Stdlib only, same as everything under `internal/`.
 """
 
 from __future__ import annotations
@@ -31,8 +31,8 @@ import json
 import sys
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parent
-UMBRELLA_ROOT = TOOLS_DIR.parent
+# parents[2] because this sits at internal/render/, two levels down.
+UMBRELLA_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = UMBRELLA_ROOT / "contracts" / "manifest.json"
 README = UMBRELLA_ROOT / "README.md"
 
@@ -182,7 +182,7 @@ def check() -> int:
     expected = render()
     if found != expected:
         print("README contracts block does not match contracts/manifest.json.", file=sys.stderr)
-        print("  Fix: python3 tools/contracts_table.py", file=sys.stderr)
+        print("  Fix: python3 internal/render/contracts_table.py", file=sys.stderr)
         return 1
 
     print("contracts table ok")

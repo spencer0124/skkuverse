@@ -64,7 +64,7 @@ graph TB
 | server | Read API + push dispatch. **Never writes `summary*`; owns exactly one read index** | read-only (+ 1 read index) | [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
 | app | Server-driven tabs, Markdown rendering, push receipt | none (via API) | [app docs](https://github.com/spencer0124/skkuverse-app/tree/main/docs) |
 | web | Marketing site | none | (pending) |
-| **this repo** | Cross-repo docs, shared conventions, the config-contract registry, and the daily fleet pin. `tools/skkuverse_sync.py` and `tools/conventions_lint.py` both run as blocking gates in consumer CI | none | [contracts/README.md](../../contracts/README.md) |
+| **this repo** | Cross-repo docs, shared conventions, the config-contract registry, and the daily fleet pin. `exported/sync_contracts.py` and `exported/lint_conventions.py` both run as blocking gates in consumer CI | none | [contracts/README.md](../../contracts/README.md) |
 
 ## The two runtime HTTP seams
 

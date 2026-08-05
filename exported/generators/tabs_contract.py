@@ -25,7 +25,7 @@ HEADER = """\
 // GENERATED — do not edit.
 //
 // Source: skkuverse-crawler py/generated/server-categories.json
-// Regenerate: python3 <skkuverse>/tools/skkuverse_sync.py pull --repo app
+// Regenerate: python3 <skkuverse>/exported/sync_contracts.py pull --repo app
 // Hash-locked in .contracts.lock.json ("notices.tab-keys"); CI fails on drift.
 
 """

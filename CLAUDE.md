@@ -30,7 +30,7 @@ Why: these repos are public and serve as a portfolio. A reader landing on
 Mixed-language files also make search unreliable, because you cannot grep "ownership" in
 a file that says "소유권". <!-- conventions:allow-korean: the example is the point -->
 
-This is enforced rather than merely stated. `tools/conventions_lint.py` fails on Korean
+This is enforced rather than merely stated. `exported/lint_conventions.py` fails on Korean
 outside declared product copy. A single line may opt out with a `conventions:allow-korean`
 marker plus a reason, which keeps the exception visible where it applies. Repo-wide
 product-copy paths belong in that repo's `.conventions.json`.
@@ -42,15 +42,20 @@ matching the surrounding language.
 
 The umbrella repo for the SKKUverse ecosystem. Separate concerns live here:
 
+- **`exported/` and `internal/` are the two halves of the tooling, and the split is the
+  most important thing to know about this repo.** Other repositories clone `exported/`
+  during their own CI and run it by absolute path, so a rename there breaks their default
+  branches. Nothing outside this repo may depend on `internal/`. Each directory has a
+  README stating exactly what it does and does not promise.
 - `docs/` holds cross-repo knowledge only: system boundaries, data flows that cross repo
   lines, ownership maps, and ADRs whose consequences span repos. Repo-local knowledge
   belongs in that repo's own `docs/`.
-- `contracts/` and `tools/skkuverse_sync.py` form an executable contract registry. It runs
+- `contracts/` and `exported/sync_contracts.py` form an executable contract registry. It runs
   as a blocking CI gate inside other repositories, so this repo is not docs-only and a
   change here can turn several pipelines red at once.
 - `conventions/` defines rules that apply to every repository. Conventions that are files
   travel as contracts. Conventions that are properties of a repo's own files are checked by
-  `tools/conventions_lint.py` and `tools/prose_metrics.py`.
+  `exported/lint_conventions.py` and `internal/check/prose.py`.
 - `.gitmodules` and the `skkuverse-*/` directories are a daily pin of every repo's `main`,
   written by `.github/workflows/fleet-snapshot.yml`. Never develop in them, and do not run
   `git submodule update --init` unless you are deliberately opening a past day. See
@@ -59,26 +64,26 @@ The umbrella repo for the SKKUverse ecosystem. Separate concerns live here:
 ## Commands
 
 ```bash
-python3 tools/skkuverse_sync.py status              # every contract at a glance (offline)
-python3 tools/skkuverse_sync.py status --remote     # same, against origin/main
-python3 tools/skkuverse_sync.py check --fleet       # freshness across every repo
-python3 tools/skkuverse_sync.py pull --all          # adopt upstream, rewrite locks
-python3 tools/skkuverse_sync.py explain <id>        # full chain for one contract
-python3 tools/skkuverse_sync.py validate-manifest   # schema and self-consistency
+python3 exported/sync_contracts.py status              # every contract at a glance (offline)
+python3 exported/sync_contracts.py status --remote     # same, against origin/main
+python3 exported/sync_contracts.py check --fleet       # freshness across every repo
+python3 exported/sync_contracts.py pull --all          # adopt upstream, rewrite locks
+python3 exported/sync_contracts.py explain <id>        # full chain for one contract
+python3 exported/sync_contracts.py validate-manifest   # schema and self-consistency
 
-python3 tools/fleet_snapshot.py                     # rewrite the README fleet table
-python3 tools/fleet_snapshot.py --check             # verify it, offline (what CI runs)
-python3 tools/contracts_table.py                    # rewrite the README contract table
-python3 tools/contracts_table.py --check            # verify it, offline (what CI runs)
+python3 internal/render/fleet_table.py                     # rewrite the README fleet table
+python3 internal/render/fleet_table.py --check             # verify it, offline (what CI runs)
+python3 internal/render/contracts_table.py                    # rewrite the README contract table
+python3 internal/render/contracts_table.py --check            # verify it, offline (what CI runs)
 
-python3 tools/conventions_lint.py --root .          # language, frontmatter, docs structure
-python3 tools/conventions_lint.py --root ../skkuverse-ai   # ...or any sibling
-python3 tools/prose_metrics.py --root .             # bold overuse, sentence-length spread
-python3 tools/prose_metrics.py --root . --report    # the numbers, without failing
+python3 exported/lint_conventions.py --root .          # language, frontmatter, docs structure
+python3 exported/lint_conventions.py --root ../skkuverse-ai   # ...or any sibling
+python3 internal/check/prose.py --root .             # bold overuse, sentence-length spread
+python3 internal/check/prose.py --root . --report    # the numbers, without failing
 
 vale sync && vale --glob='!skkuverse*/**' .         # the prose rules
 
-python3 -m unittest discover -s tools/tests -v      # the tools' own tests
+python3 -m unittest discover -s tests -v      # the tools' own tests
 ```
 
 ## Constraints that are not negotiable
@@ -92,11 +97,13 @@ Network-dependent checks are advisory and run on a schedule. If a blocking check
 observed failing for an outside reason, that is a design bug, and the fix is to move it to
 a cron.
 
-`tools/` is stdlib-only Python 3, with no dependencies ever. Sibling repos clone this
+`exported/` is stdlib-only Python 3, with no dependencies ever. Sibling repos clone this
 directory into CI and run it with the system `python3`. Adding a dependency would mean
 adding an install step to each of them, and `skkuverse-server` pins every dependency
 exactly and runs `knip` and `depcheck` on top. If you reach for a library, restructure
-instead. Vale is the deliberate exception, and it stays outside `tools/` for this reason.
+instead. `internal/` holds to the same rule so a contributor never has to install
+anything, though only `exported/` is bound by it. Vale is the deliberate exception, and it
+stays outside both directories for this reason.
 
 Never hardcode a value that lives somewhere else. No version numbers, no counts, no schema
 fields, no per-repo adoption state. Link to the owning source, or generate the text from

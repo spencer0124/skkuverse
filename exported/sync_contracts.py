@@ -26,12 +26,12 @@ hand-authored, so nothing can be hand-authored wrong.
 Stdlib only, no install step: `ubuntu-latest` ships python3, so a consumer
 gains a contract gate without touching its dependency manifest.
 
-    python3 tools/skkuverse_sync.py status
-    python3 tools/skkuverse_sync.py check --repo server --root .
-    python3 tools/skkuverse_sync.py check --fleet
-    python3 tools/skkuverse_sync.py pull --all
-    python3 tools/skkuverse_sync.py explain notices.topic-cap
-    python3 tools/skkuverse_sync.py validate-manifest
+    python3 exported/sync_contracts.py status
+    python3 exported/sync_contracts.py check --repo server --root .
+    python3 exported/sync_contracts.py check --fleet
+    python3 exported/sync_contracts.py pull --all
+    python3 exported/sync_contracts.py explain notices.topic-cap
+    python3 exported/sync_contracts.py validate-manifest
 """
 
 from __future__ import annotations
@@ -49,8 +49,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-TOOLS_DIR = Path(__file__).resolve().parent
-UMBRELLA_ROOT = TOOLS_DIR.parent
+EXPORTED_DIR = Path(__file__).resolve().parent
+UMBRELLA_ROOT = EXPORTED_DIR.parent
 MANIFEST_PATH = UMBRELLA_ROOT / "contracts" / "manifest.json"
 # Sibling checkouts live next to the umbrella repo. Only --local uses this;
 # every other mode addresses repos by their GitHub coordinates.
@@ -157,7 +157,11 @@ def relation_symbol(name: str) -> str:
 def _load_generators() -> dict[str, Callable[[bytes], bytes]]:
     # Imported lazily so `check --repo` — which never generates — keeps working
     # even if a generator module is broken.
-    sys.path.insert(0, str(TOOLS_DIR))
+    # Puts exported/ at the FRONT of sys.path, ahead of the standard library.
+    # That is why tests/test_exported_surface.py forbids a file here from
+    # sharing a name with a stdlib module: it would shadow it for every
+    # consumer that runs this script.
+    sys.path.insert(0, str(EXPORTED_DIR))
     from generators.tabs_contract import tabs_contract_ts
 
     return {"tabs_contract_ts": tabs_contract_ts}
@@ -312,7 +316,7 @@ def write_lock(root: Path, repo: str, entries: dict[str, Any]) -> None:
         "lockVersion": LOCK_VERSION,
         "repo": repo,
         "note": (
-            "Written by skkuverse_sync.py. Do not hand-edit, and never resolve a "
+            "Written by sync_contracts.py. Do not hand-edit, and never resolve a "
             "merge conflict here by hand - take either side, then re-run "
             "`pull --repo " + repo + "`."
         ),
@@ -378,7 +382,7 @@ def cmd_check_repo(manifest: dict[str, Any], repo: str, root: Path) -> int:
             print(f"  FAIL  {cid}")
             print("          In the lock but not in the manifest at all.")
             print("          Cause: the contract was renamed or retired.")
-            print(f"          Fix:   skkuverse_sync.py pull --repo {repo}")
+            print(f"          Fix:   sync_contracts.py pull --repo {repo}")
         for cid in sorted(set(lock["contracts"]) & known):
             print(f"  ahead   {cid} — locked here, not active in the manifest yet")
         if not failures:
@@ -397,7 +401,7 @@ def cmd_check_repo(manifest: dict[str, Any], repo: str, root: Path) -> int:
             failures += 1
             print(f"  FAIL  {cid:<{width}}  {consumer['path']}")
             print(f"          No entry in {LOCK_NAME}.")
-            print(f"          Fix:   skkuverse_sync.py pull --repo {repo}")
+            print(f"          Fix:   sync_contracts.py pull --repo {repo}")
             continue
 
         target = root / consumer["path"]
@@ -453,7 +457,7 @@ def cmd_check_repo(manifest: dict[str, Any], repo: str, root: Path) -> int:
                 print(f"          The vendored file does not match {LOCK_NAME}.")
                 print("          Cause: a hand edit, a partial copy, or a codegen")
                 print("                 copy that landed without a lock update.")
-                print(f"          Fix:   skkuverse_sync.py pull --repo {repo}")
+                print(f"          Fix:   sync_contracts.py pull --repo {repo}")
 
         for requirement in consumer.get("requires", []):
             problem = check_requirement(requirement, root, consumer["path"])
@@ -475,7 +479,7 @@ def cmd_check_repo(manifest: dict[str, Any], repo: str, root: Path) -> int:
         print(f"  FAIL  {cid}")
         print("          In the lock but not in the manifest at all.")
         print("          Cause: the contract was renamed or retired.")
-        print(f"          Fix:   skkuverse_sync.py pull --repo {repo}")
+        print(f"          Fix:   sync_contracts.py pull --repo {repo}")
 
     print()
     for cid in ahead:
@@ -945,7 +949,7 @@ def cmd_check_fleet(manifest: dict[str, Any], *, markdown: bool) -> int:
                 lines.append(
                     f"DRIFT  {cid}  {consumer['repo']} is behind\n"
                     f"         producer @ {short(producer_commit)}: {locked!r} -> {current!r}\n"
-                    f"         Fix: skkuverse_sync.py pull --repo {consumer['repo']}"
+                    f"         Fix: sync_contracts.py pull --repo {consumer['repo']}"
                 )
 
     if markdown:
@@ -1110,7 +1114,7 @@ def _check_regex(where: str, side: str, pattern: str) -> list[str]:
 # ---------------------------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="skkuverse_sync.py",
+        prog="sync_contracts.py",
         description="Cross-repo config contract sync for skkuverse.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
