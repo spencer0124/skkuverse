@@ -1,0 +1,15 @@
+# An em dash is fine. Twelve on a page is the tell.
+#
+# ai-tells.EmDashUsage flags every one, which is unusable on real prose, and
+# neither the Google nor the Microsoft package measures density at all - both
+# check only whether the dash is spaced. So this rule exists because nothing
+# ships it.
+#
+# `occurrence` with `scope: paragraph` is the same mechanism ai-tells uses for
+# VerbTricolonDensity.
+extends: occurrence
+message: "More than one em dash in this paragraph. Use a comma, a colon, parentheses, or a second sentence."
+level: warning
+scope: paragraph
+max: 1
+token: '—'

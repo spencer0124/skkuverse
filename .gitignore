@@ -4,3 +4,9 @@ node_modules/
 # tools/ is stdlib-only Python, run directly — never installed, never built.
 __pycache__/
 *.py[cod]
+
+# Vale styles split the way package.json and node_modules do. Third-party
+# packages are pinned by release URL in .vale.ini and fetched with `vale sync`;
+# styles/skkuverse/ is our own source and is committed.
+/styles/*
+!/styles/skkuverse/

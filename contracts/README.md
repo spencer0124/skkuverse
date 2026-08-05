@@ -9,7 +9,7 @@ audience: public
 
 # Cross-Repo Config Contracts
 
-> Configuration owned by one repo and vendored by another is a **contract**. [`manifest.json`](manifest.json) is the list of them, and [`../tools/skkuverse_sync.py`](../tools/skkuverse_sync.py) is what keeps the copies honest.
+> Configuration owned by one repo and vendored by another is a *contract*. [`manifest.json`](manifest.json) is the list of them, and [`../tools/skkuverse_sync.py`](../tools/skkuverse_sync.py) is what keeps the copies honest.
 
 The whole fleet in one command:
 
@@ -32,7 +32,7 @@ else:
 
 ## The three edges
 
-Split by **who can fix the failure**.
+Split by who can fix the failure.
 
 | Edge | Compares | Network | Runs in | Severity |
 | --- | --- | --- | --- | --- |
@@ -48,19 +48,19 @@ Per repo, the integrity check runs in:
 | app | `contracts.yml` — this repo's first CI, so there is no separate `ci.yml` |
 | ai | `ci.yml` and `deploy.yml` |
 
-Every blocking check is **offline** and is triggered by a file in the same repo as the PR, so a red build is always fixable in that branch. Editing a department in the crawler never reddens an unrelated server PR.
+Every blocking check is offline and is triggered by a file in the same repo as the PR, so a red build is always fixable in that branch. Editing a department in the crawler never reddens an unrelated server PR.
 
-> The governing rule: **a red check the author cannot fix in the current branch is worse than no check.** It teaches you to merge anyway, and then the whole system is decorative. If a blocking check is ever observed failing for a reason outside the author's branch, that is a design bug — move it to the freshness cron.
+That split follows the governing rule for every check in this ecosystem, stated in [CLAUDE.md](../CLAUDE.md#constraints-that-are-not-negotiable). A blocking check that fails for a reason outside the author's branch is a design bug, and the fix is to move it to the freshness cron.
 
 ## Why hashes and not versions
 
-Every value in a lock file is either a **content hash** computed by `pull` or a **constant extracted** from source. Nothing is hand-authored, so nothing can be hand-authored wrong. A human-invented version string (`v3.5.1`) tells you nothing about what changed, and starts lying silently the moment someone forgets to bump it.
+Every value in a lock file is either a content hash computed by `pull` or a constant extracted from source. Nothing is hand-authored, so nothing can be hand-authored wrong. A version string invented by a human, such as `v3.5.1`, tells you nothing about what changed and starts lying the moment someone forgets to bump it.
 
-**The manifest holds no hashes and no values.** It is the *map* — who gives what to whom — while hashes are *state* and live in each consumer's lock. That is why the manifest changes only when the **set** of contracts changes, which is rare. This is the same *point at the source, don't copy the value* rule the docs follow ([docs/README.md](../docs/README.md)).
+**The manifest holds no hashes and no values.** It is the map of who gives what to whom, while hashes are state and live in each consumer's lock. The manifest therefore changes only when the set of contracts changes, which is rare. This is the same *point at the source, don't copy the value* rule the docs follow ([docs/README.md](../docs/README.md)).
 
 ## The comparison chain
 
-A consumer's copy is a **transform** of the SSOT, not a copy of it — `hasCategory` and `hasAuthor` are derived from `strategy`. So the thing to compare against is the **generated artifact**, which is why the crawler's `py/generated/` is committed rather than ignored.
+A consumer's copy is a transform of the SSOT rather than a byte copy, because `hasCategory` and `hasAuthor` are derived from `strategy`. The thing to compare against is therefore the generated artifact, and that is why the crawler's `py/generated/` is committed rather than ignored.
 
 ```
 crawler/sources.json                        SSOT, committed
@@ -83,7 +83,7 @@ For `mode: generate` the two hashes differ by construction — `sha256` is of th
 
 - **`kind: file`, `mode: copy`** — a byte copy.
 - **`kind: file`, `mode: generate`** — a generator in [`../tools/generators/`](../tools/generators/) derives the consumer file from the producer's. Generators must be deterministic: `pull` produces the file and `status` reproduces it to verify, so any nondeterminism reads as drift.
-- **`kind: constant`** — not a file but a constant in source, pulled out by regex and **fail-closed**: anything other than exactly one match raises. "I can no longer find this constant" has to be a build failure, or a rename silently disables the check forever.
+- **`kind: constant`** — a constant in source rather than a file, pulled out by regex and fail-closed. Anything other than exactly one match raises. "I can no longer find this constant" has to be a build failure, or a rename silently disables the check forever.
 
 `relation` is `eq`, `lte` or `gte`. Direction matters for some contracts. `notices.topic-cap` is `lte` because the Cloud Function rejects any payload above `MAX_TOPICS`, so the server's `TOPIC_CAP` must stay at or below it — and only `lte` keeps the app-first deploy order that [ADR 0005 in skkuverse-server](https://github.com/spencer0124/skkuverse-server/blob/main/docs/decisions/0005-notice-dispatch-content-group.md) mandates green at every step:
 
@@ -94,7 +94,7 @@ For `mode: generate` the two hashes differ by construction — `sha256` is of th
 | server catches up | 30 | 30 | green | green | yes |
 | *wrong order:* server first | 10 | 30 | red | **red** | no — CF returns 400, retries burn to permanent failure |
 
-`status` distinguishes `active` (enforced), `planned` (listed, skipped) and `retired`. Registering a contract as `planned` before it exists means the gap shows up in every run rather than only in a README. **Two of the current entries are `planned`**, both waiting on the crawler shipping `search.json`.
+`status` distinguishes `active` (enforced), `planned` (listed, skipped) and `retired`. Registering a contract as `planned` before it exists means the gap shows up in every `status` run rather than only in a README. Which entries are currently planned, and what each is waiting on, is generated onto the [landing page](../README.md#how-changes-propagate) from the manifest.
 
 ## Day-to-day
 
@@ -115,13 +115,13 @@ python3 tools/skkuverse_sync.py explain notices.topic-cap
 python3 tools/skkuverse_sync.py check --repo server --root .
 ```
 
-`pull` rewrites a lock **only when a value actually changed** (`syncedAt` and `producer.commit` are provenance and are never compared). On a clean fleet it produces zero diffs — without that property every run dirties four repos and nobody trusts the tool.
+`pull` rewrites a lock only when a value actually changed. `syncedAt` and `producer.commit` are provenance and are never compared. On a clean fleet it produces zero diffs, and without that property every run would dirty every repo and nobody would trust the tool.
 
 ### Adding a contract
 
 1. Add the entry to `manifest.json` (starting at `status: "planned"` is fine).
 2. `python3 tools/skkuverse_sync.py validate-manifest`
-3. `pull --repo <consumer>`, then commit the lock **in the consumer repo**.
+3. `pull --repo <consumer>`, then commit the lock in the consumer repo.
 4. Flip to `status: "active"` in a follow-up.
 
 That order matters: `check` tolerates a lock entry that is ahead of its activation, but activating first breaks the consumer's default branch until its lock lands.

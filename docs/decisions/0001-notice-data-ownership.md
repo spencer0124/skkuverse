@@ -1,5 +1,5 @@
 ---
-title: Notice Data Ownership — Crawler Writes, AI Contributes, Server Reads
+title: Notice Data Ownership Across Writers
 type: adr
 status: accepted
 owner: zoyoong124@gmail.com
@@ -9,7 +9,7 @@ audience: public
 
 # ADR 0001 — Notice data ownership
 
-> Three repos touch the `skku_notices.notices` collection. This is the cross-repo contract for what each of them owns. Repo-local perspectives link out to their own ADRs.
+> The crawler, the AI service and the server all touch the `skku_notices.notices` collection. This is the cross-repo contract for what each of them owns, and repo-local perspectives link out to their own ADRs.
 
 ## Status
 
@@ -17,7 +17,7 @@ accepted (backfilled — written down while organising the system documentation 
 
 ## Context
 
-`notices` is the only collection in SKKUverse with **multiple writers**. The crawler writes the body, an AI summary attaches asynchronously afterwards, and the server reads it to serve. When ownership is vague:
+`notices` is the only collection in SKKUverse with more than one writer. The crawler writes the body, an AI summary attaches asynchronously afterwards, and the server reads it to serve. When ownership is vague:
 
 - two repos write the same field and race,
 - the server starts writing a field "just this once" and a later re-crawl overwrites it,
@@ -41,7 +41,7 @@ accepted (backfilled — written down while organising the system documentation 
 - ✅ No races — every field has exactly one writer.
 - ✅ One schema SSOT, so the drift surface is as small as it can be.
 - ✅ The AI service stays stateless, which makes it easy to retry, scale or replace.
-- ⚠️ Because summaries attach asynchronously, the app **must** handle `summaryAt: null` ("summary pending") as a real state.
+- ⚠️ Because summaries attach asynchronously, the app has to handle `summaryAt: null` ("summary pending") as a real state.
 - ⚠️ The server will occasionally be tempted into a convenience write. The read-only invariant is held by code review and by the index ownership boundary, not by the database.
 
 ## Related

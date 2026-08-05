@@ -9,16 +9,16 @@ audience: public
 
 # Data Topology
 
-> The single map of which repo owns which data and where its schema is documented. **This document never duplicates schema fields** — it links to the owning repo's canonical document.
+> The single map of which repo owns which data and where its schema is documented. This document never duplicates schema fields. It links to the owning repo's canonical document instead.
 
-Scope: **runtime data** (MongoDB collections). Cross-repo ownership of **configuration files** has its own map, and that one is machine-readable rather than prose — [`contracts/manifest.json`](../../contracts/manifest.json), explained in [`contracts/README.md`](../../contracts/README.md). Both maps follow the same rule: the producer owns it, consumers hold copies.
+Scope: runtime data, meaning MongoDB collections. Cross-repo ownership of configuration files has its own map, and that one is machine-readable rather than prose. It is [`contracts/manifest.json`](../../contracts/manifest.json), explained in [`contracts/README.md`](../../contracts/README.md). Both maps follow the same rule: the producer owns it, consumers hold copies.
 
 ## The ownership rule
 
 > [!NOTE]
-> **A collection's schema document is owned by the repo that writes or migrates it** (database-per-service). Read-only repos document their own perspective — read indexes, render contracts — and link to the owner for field definitions.
+> **A collection's schema document is owned by the repo that writes or migrates it** (database-per-service). Read-only repos document their own perspective, such as read indexes and render contracts, and link to the owner for field definitions.
 
-MongoDB Atlas holds several logical databases. Most have a single owner; the one exception is `skku_notices.notices`, which has multiple writers.
+MongoDB Atlas holds several logical databases. Most have a single owner. The exception is `skku_notices.notices`, which has more than one writer.
 
 ## Collection ownership map
 
@@ -26,7 +26,7 @@ MongoDB Atlas holds several logical databases. Most have a single owner; the one
 | --- | --- | --- | --- | --- |
 | `skku_notices` | `notices` | **crawler** (documents + unique index) | ai (`summary*` via `$set`), server (read + one read index) | [crawler `docs/notice-schema.md`](https://github.com/spencer0124/skkuverse-crawler/blob/main/docs/notice-schema.md) |
 | `skku_notices` | `schedule` | **crawler** | — | [crawler docs](https://github.com/spencer0124/skkuverse-crawler/tree/main/docs) *(no dedicated schema doc yet)* |
-| `skku_notices` | `restaurant` *(planned)* | **crawler** | — | crawler, once the restaurant module lands |
+| `skku_notices` | `restaurant` *(planned)* | **crawler** | — | crawler, once the restaurant module exists |
 | `bus_campus` | `bus_schedules`, `bus_overrides` | **server** | — | [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
 | `skkubus_ads` | `ad_events` and others | **server** | — | [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
 
@@ -51,7 +51,7 @@ The reasoning and the invariants are in [ADR 0001](../decisions/0001-notice-data
 
 ## Why there is no separate "database docs" repo
 
-Collecting every schema in one place would (a) blur ownership and (b) split code and documentation across two repos, where they drift. Instead **schemas live with their owner and this document is only the map** — the system-level application of *point at the source, don't copy the value*.
+Collecting every schema in one place would blur ownership, and it would split code and documentation across two repos, where they drift. Schemas live with their owner and this document is only the map. That is the system-level application of *point at the source, don't copy the value*.
 
 ## Related
 
