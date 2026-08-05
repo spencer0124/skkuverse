@@ -13,8 +13,11 @@ The rest are *properties of a repo's own files*, and no copy can express them:
     structure     docs/ subdirectories are Diataxis folders, not ad-hoc ones
 
 This checks those. It reads only the repo it is pointed at, so it is offline
-and safe to block a merge on — the governing rule in CLAUDE.md is that a red
-check the author cannot fix in the current branch is worse than no check.
+and therefore safe to block a merge on, under the governing rule in CLAUDE.md.
+
+Prose style is a separate concern with its own tooling, in `.vale.ini` and
+`prose_metrics.py`. Neither runs in a sibling's CI, because a sibling should
+not go red over a style opinion formed in the umbrella.
 
     python3 conventions_lint.py --root .              everything
     python3 conventions_lint.py --root . --only language

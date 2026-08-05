@@ -33,11 +33,10 @@ jobs:
       # A drift checker that always passes is worse than none.
       #
       # Non-blocking on pull_request, honest everywhere else. Fleet drift is
-      # never fixable in an umbrella branch — it is fixed by merging or
-      # syncing a *different* repo — and this system's governing rule is that
-      # a red check the author cannot fix in-branch is worse than no check,
-      # because it teaches you to merge anyway. On workflow_dispatch a human
-      # asked "is the fleet in sync?", so there the exit status is the answer.
+      # never fixable in an umbrella branch, because it is fixed by merging or
+      # syncing a different repo. The governing rule in CLAUDE.md is what makes
+      # that non-blocking rather than red. On workflow_dispatch a human asked
+      # "is the fleet in sync?", so there the exit status is the answer.
       - name: Fleet report
         shell: bash
         continue-on-error: ${{ github.event_name == 'pull_request' }}

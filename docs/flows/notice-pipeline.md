@@ -9,11 +9,11 @@ audience: public
 
 # Notice Pipeline (End-to-End)
 
-> The full path of the AI notice feature — from crawling a department site to rendering on screen, as one route across six repos. The static structure is in [Container View](../architecture/container-view.md); data ownership in [Data Topology](../architecture/data-topology.md).
+> The full path of the AI notice feature, from crawling a department site to rendering on screen, as one route across the fleet. The static structure is in [Container View](../architecture/container-view.md), and data ownership in [Data Topology](../architecture/data-topology.md).
 
 ## In one sentence
 
-**The crawler collects and cleans a notice into Mongo → the AI service attaches a structured summary in a single LLM call → the server reads it, serves it, and orchestrates the push → the app renders it. No message queue: Mongo is the bus, and there are exactly two synchronous HTTP seams.**
+**The crawler cleans a notice into Mongo. The AI service attaches a structured summary in one LLM call. The server serves it over the read API and orchestrates the push. The app renders it.** There is no message queue: Mongo is the bus, with exactly two synchronous HTTP seams on top.
 
 ## Sequence
 
@@ -67,7 +67,7 @@ The tab configuration that drives the first and last rows is itself a cross-repo
 
 1. **Summaries attach asynchronously (the `summaryAt` null gate).** Crawling never waits on summarization. The body is stored first and the summary catches up later; the app shows "summary pending" while `summaryAt` is null.
 2. **Two timestamps, deliberately (`summaryAt` vs `aiSummaryAt`).** One is the crawler's internal "summarized" marker, the other is the server's FCM dispatch gate. Keeping them separate is what stops a re-summarization from triggering a second push.
-3. **What the three-way `type` is for.** `action_required | event | informational` is used downstream **only to interpret deadlines**. Subject classification (department, scholarship, …) is the crawler's `category` metadata, a different axis entirely.
+3. **What the `type` field is for.** `action_required | event | informational` is used downstream to interpret deadlines and nothing else. Subject classification, such as department or scholarship, is the crawler's `category` metadata and a different axis entirely.
 
 > [!NOTE]
 > Concrete values — field counts, field names, cron expressions — are owned by each repo's code. This document describes the shape of the flow; look up the values in the linked documents.

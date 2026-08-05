@@ -2,11 +2,12 @@
 
 Guidance for Claude Code (claude.ai/code) working in this repository.
 
-## Language policy — English everywhere
+## Language policy: English everywhere
 
-**Everything written in or about this ecosystem is in English.** No exceptions, no mixed-language files.
+Everything written in or about this ecosystem is in English. No exceptions, no
+mixed-language files.
 
-This applies to every artifact, not just the ones that reach GitHub:
+This applies to every artifact, not only the ones that reach GitHub:
 
 | Surface | Rule |
 | --- | --- |
@@ -17,24 +18,43 @@ This applies to every artifact, not just the ones that reach GitHub:
 | README and all `docs/` content | English |
 | ADRs | English |
 | CLI output, log messages, error strings | English |
-| JSON `note` / `description` fields in config | English |
+| JSON `note` and `description` fields in config | English |
 | Branch names | English |
 
-Korean product copy is the one carve-out, and only where it *is* the product: user-facing strings shipped to the app (`label.ko`, i18n bundles, notice content). Those are data, not documentation. Their surrounding code and comments stay English.
+Korean product copy is the one carve-out, and only where it is the product: user-facing
+strings the app displays, such as `label.ko`, i18n bundles, and notice content. Those are
+data. The code and comments around them stay English.
 
-**Why:** these repos are public and serve as a portfolio. A reader landing on `container-view.md` or a PR diff should not need Korean to follow the reasoning. Mixed-language docs also make search and grep unreliable — you cannot find "ownership" in a file that says "소유권". <!-- conventions:allow-korean: the example is the point -->
+Why: these repos are public and serve as a portfolio. A reader landing on
+`container-view.md` or a PR diff should not need Korean to follow the reasoning.
+Mixed-language files also make search unreliable, because you cannot grep "ownership" in
+a file that says "소유권". <!-- conventions:allow-korean: the example is the point -->
 
-**Enforced, not merely stated.** `tools/conventions_lint.py` fails on Korean outside declared product copy. A single line may opt out with a `conventions:allow-korean` marker plus a reason — line-level and visible exactly where it applies, which beats a whole-file exemption sitting in a config file. Repo-wide product-copy paths belong in that repo's `.conventions.json`.
+This is enforced rather than merely stated. `tools/conventions_lint.py` fails on Korean
+outside declared product copy. A single line may opt out with a `conventions:allow-korean`
+marker plus a reason, which keeps the exception visible where it applies. Repo-wide
+product-copy paths belong in that repo's `.conventions.json`.
 
-When editing an existing file that still contains Korean, translate the parts you touch rather than matching the surrounding language.
+When editing a file that still contains Korean, translate the parts you touch rather than
+matching the surrounding language.
 
 ## What this repository is
 
-The umbrella repo for the SKKUverse ecosystem. Three distinct things live here:
+The umbrella repo for the SKKUverse ecosystem. Separate concerns live here:
 
-1. **`docs/`** — cross-repo knowledge only: system boundaries, data flows crossing repo lines, ownership maps, and ADRs whose consequences span repos. Repo-local knowledge belongs in that repo's own `docs/`.
-2. **`contracts/` + `tools/skkuverse_sync.py`** — an executable contract registry. It runs as a **blocking CI gate in three other repositories** (server, app, ai — the crawler is the producer and has nothing to verify), which is why this repo is not docs-only and why changes here have blast radius.
-3. **`.gitmodules` + the six `skkuverse-*/` directories** — a daily pin of every repo's `main`, written by `.github/workflows/fleet-snapshot.yml`. It is **a record, not a workspace**: never develop in it, and do not `git submodule update --init` unless you are deliberately expanding a past day. It is also where fleet membership is declared — six repos, deliberately a superset of the contract manifest's four, because those answer different questions.
+- `docs/` holds cross-repo knowledge only: system boundaries, data flows that cross repo
+  lines, ownership maps, and ADRs whose consequences span repos. Repo-local knowledge
+  belongs in that repo's own `docs/`.
+- `contracts/` and `tools/skkuverse_sync.py` form an executable contract registry. It runs
+  as a blocking CI gate inside other repositories, so this repo is not docs-only and a
+  change here can turn several pipelines red at once.
+- `conventions/` defines rules that apply to every repository. Conventions that are files
+  travel as contracts. Conventions that are properties of a repo's own files are checked by
+  `tools/conventions_lint.py` and `tools/prose_metrics.py`.
+- `.gitmodules` and the `skkuverse-*/` directories are a daily pin of every repo's `main`,
+  written by `.github/workflows/fleet-snapshot.yml`. Never develop in them, and do not run
+  `git submodule update --init` unless you are deliberately opening a past day. See
+  [ADR 0003](docs/decisions/0003-daily-fleet-pin-as-submodules.md).
 
 ## Commands
 
@@ -44,38 +64,73 @@ python3 tools/skkuverse_sync.py status --remote     # same, against origin/main
 python3 tools/skkuverse_sync.py check --fleet       # freshness across every repo
 python3 tools/skkuverse_sync.py pull --all          # adopt upstream, rewrite locks
 python3 tools/skkuverse_sync.py explain <id>        # full chain for one contract
-python3 tools/skkuverse_sync.py validate-manifest   # schema + self-consistency
+python3 tools/skkuverse_sync.py validate-manifest   # schema and self-consistency
 
 python3 tools/fleet_snapshot.py                     # rewrite the README fleet table
 python3 tools/fleet_snapshot.py --check             # verify it, offline (what CI runs)
+python3 tools/contracts_table.py                    # rewrite the README contract table
+python3 tools/contracts_table.py --check            # verify it, offline (what CI runs)
 
 python3 tools/conventions_lint.py --root .          # language, frontmatter, docs structure
 python3 tools/conventions_lint.py --root ../skkuverse-ai   # ...or any sibling
+python3 tools/prose_metrics.py --root .             # bold overuse, sentence-length spread
+python3 tools/prose_metrics.py --root . --report    # the numbers, without failing
+
+vale sync && vale --glob='!skkuverse*/**' .         # the prose rules
 
 python3 -m unittest discover -s tools/tests -v      # the tools' own tests
 ```
 
 ## Constraints that are not negotiable
 
-**`tools/` is stdlib-only Python 3.** No dependencies, ever. Four repos clone this tool into CI and run it with the system `python3`; adding a dependency would mean adding an install step to each of them, and `skkuverse-server` pins every dependency exactly and runs `knip` + `depcheck` on top. If you reach for a library, restructure instead.
+**A red check the author cannot fix in the current branch is worse than no check.** This
+is the governing rule for every gate in the ecosystem, and the rest of the documentation
+cites it rather than restating it. A check that fails for a reason outside the author's
+branch teaches people to merge anyway, and then every check becomes decorative. Any
+blocking check must therefore compare files inside a single repository, with no network.
+Network-dependent checks are advisory and run on a schedule. If a blocking check is ever
+observed failing for an outside reason, that is a design bug, and the fix is to move it to
+a cron.
 
-**Never hardcode a value that lives in another repo.** No version numbers, counts, or schema fields. Link to the owning repo's source instead. A number copied here starts lying the moment that repo changes, and nothing will tell you. See `docs/README.md` §3.
+`tools/` is stdlib-only Python 3, with no dependencies ever. Sibling repos clone this
+directory into CI and run it with the system `python3`. Adding a dependency would mean
+adding an install step to each of them, and `skkuverse-server` pins every dependency
+exactly and runs `knip` and `depcheck` on top. If you reach for a library, restructure
+instead. Vale is the deliberate exception, and it stays outside `tools/` for this reason.
 
-**The manifest holds pointers, not content.** No hashes, no values in `contracts/manifest.json` — those live in each consumer's `.contracts.lock.json`, written by tooling. The manifest changes only when the *set* of contracts changes.
+Never hardcode a value that lives somewhere else. No version numbers, no counts, no schema
+fields, no per-repo adoption state. Link to the owning source, or generate the text from
+it. A number copied into prose starts lying the moment its source changes, and nothing
+reports it. Both README tables are generated for this reason. See `docs/README.md` §3.
 
-**Blocking checks must be offline.** Any check that can fail a merge or a deploy compares files within a single repo. Network-dependent checks are advisory and run on a schedule. The governing rule: *a red check the author cannot fix in the current branch is worse than no check* — it teaches people to merge anyway.
+The manifest holds pointers, not content. No hashes and no values belong in
+`contracts/manifest.json`, because those live in each consumer's `.contracts.lock.json`
+and are written by tooling. The manifest changes only when the set of contracts changes.
 
-**The fleet table in `README.md` is generated.** Never hand-edit between `<!-- fleet:start -->` and `<!-- fleet:end -->`; `ci.yml` fails on it. And **never add a time-relative column** — no "age", no "N days ago", no generated-at stamp. The block must be a pure function of the pinned SHAs, or the daily cron rewrites it every day even when nothing moved, `--check` becomes non-deterministic, and a quiet day stops being distinguishable from a busy one.
+The generated blocks in `README.md` are never hand-edited. `ci.yml` fails on any edit
+between `<!-- fleet:start -->` and `<!-- fleet:end -->`, or between
+`<!-- contracts:start -->` and `<!-- contracts:end -->`. Never add a time-relative column
+to either: no age, no "N days ago", no generated-at stamp. Each block must be a pure
+function of its inputs, or the daily cron rewrites it even when nothing moved, `--check`
+becomes non-deterministic, and a quiet day stops being distinguishable from a busy one.
 
-**Test the tools before changing them.** `.github/workflows/ci.yml` runs the unit tests, `validate-manifest`, and `fleet_snapshot.py --check` on every PR. That job is the only thing bounding the blast radius of an unpinned tool consumed by three other repos.
+Test the tools before changing them. `.github/workflows/ci.yml` runs the unit tests,
+`validate-manifest`, and both table checks on every PR. That job is the only thing limiting
+the damage an unpinned tool can do to the repos consuming it.
 
 ## Documentation conventions
 
-Follow [`docs/README.md`](docs/README.md): Diátaxis folder structure, required frontmatter, Mermaid-first diagrams, and the point-don't-copy rule. New documents start from [`docs/_template.md`](docs/_template.md).
+Follow [`docs/README.md`](docs/README.md) for structure, frontmatter, diagrams, and the
+point-don't-copy rule. New documents start from [`docs/_template.md`](docs/_template.md).
+Prose style is covered by [`conventions/prose.md`](conventions/prose.md) and enforced by
+[`.vale.ini`](.vale.ini).
 
-Frontmatter is mandatory on every Markdown document in this repo, including files outside `docs/` such as `contracts/README.md`.
+Frontmatter is mandatory on every Markdown document, including files outside `docs/` such
+as `contracts/README.md`. The two repo-root entry points, `README.md` and this file, are
+exempt.
 
 ## Related
 
-- [`contracts/README.md`](contracts/README.md) — how the contract system works and how to operate it
+- [`contracts/README.md`](contracts/README.md) — how the contract system works day to day
+- [`conventions/README.md`](conventions/README.md) — how shared rules reach the siblings
 - [`docs/decisions/`](docs/decisions/) — cross-repo ADRs

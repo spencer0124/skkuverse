@@ -1,40 +1,83 @@
-# SKKUverse — System Documentation
+# SKKUverse
 
-> SKKUverse is a campus app for Sungkyunkwan University. This repository is the **hub that stitches a system spread across six repos into one picture** — it covers the boundaries between repos, the data that flows across them, and the reasoning behind both, rather than any single repo's code.
+Coordination repo for the SKKUverse ecosystem: cross-repo documentation, shared conventions, and config contracts.
 
-In one line: **two backend planes sharing a single MongoDB Atlas as their bus — a Python ingest plane (crawler + AI) and a NestJS serving plane — with only two synchronous HTTP seams between them. All of it on one free Oracle Cloud ARM VM, $0/month.**
+SKKUverse is a campus app for Sungkyunkwan University. Each repository below releases on
+its own schedule. A Python ingest plane crawls and summarises department notices, a NestJS
+serving plane reads and serves them, and the two planes meet through a single MongoDB
+Atlas cluster. All of it runs on one free Oracle Cloud ARM VM.
 
-## Start here
+There is no application code here. What is here gates other repositories' CI, so a bad
+commit can redden several pipelines at once.
 
-| Document | What it covers |
-| --- | --- |
-| [System Context](docs/architecture/system-context.md) | The system boundary — where SKKUverse meets the outside world (SKKU sites, FCM). C4 Level 1 |
-| [Container View](docs/architecture/container-view.md) | How six repos, MongoDB and FCM fit together. C4 Level 2 |
-| [**Notice Pipeline**](docs/flows/notice-pipeline.md) | The AI notice feature end to end (crawl → summarize → serve → push → render) |
-| [Data Topology](docs/architecture/data-topology.md) | Which repo owns which collection, and where each schema is documented |
-| [Config Contracts](contracts/README.md) | Config one repo owns and others vendor — hash-locked and enforced in CI |
-| [Decisions (ADR)](docs/decisions/) | Choices whose consequences cross repo boundaries |
+## Repositories
 
-## Service topology
+| Repo | Role | Plane |
+| --- | --- | --- |
+| [skkuverse-server] | Read API, bus information, push dispatch orchestration | serving |
+| [skkuverse-crawler] | Crawls and cleans department notices and the academic calendar | ingest |
+| [skkuverse-ai] | Structured summaries of notice bodies. Stateless, no database access | ingest |
+| [skkuverse-app] | Mobile client. Live shuttle, notice feed, building search | client |
+| [skkuverse.com] | Marketing and landing site | client |
+| [skkuverse-codepush] | Self-hosted OTA update server for the app's JS bundle | infrastructure |
 
-| Service | Stack | Role | Plane | Repo |
-| --- | --- | --- | --- | --- |
-| server | NestJS 11 · TS (strict) · MongoDB | Read API, bus information, push dispatch orchestration | serving | [skkuverse-server](https://github.com/spencer0124/skkuverse-server) |
-| crawler | Python 3.12 · httpx · BeautifulSoup · motor · APScheduler | Crawls and cleans department notices and the academic calendar | ingest | [skkuverse-crawler](https://github.com/spencer0124/skkuverse-crawler) |
-| ai | Python 3.12 · FastAPI · litellm | Structured extraction from notice bodies (summary, type, dates, locations) — stateless | ingest | [skkuverse-ai](https://github.com/spencer0124/skkuverse-ai) |
-| app | Expo 54 · RN 0.81 · React 19 (Yarn monorepo) | Mobile client — live shuttle, notice feed, building search (iOS/Android) | client | [skkuverse-app](https://github.com/spencer0124/skkuverse-app) |
-| web | Next.js | Marketing and landing site (`skkuverse.com`) | client | [skkuverse.com](https://github.com/spencer0124/skkuverse.com) |
-| codepush | self-hosted `expo-open-ota` (Docker, `ota.skkuverse.com`) | Code-signed OTA update server for the app's JS bundle | infrastructure | [skkuverse-codepush](https://github.com/spencer0124/skkuverse-codepush) |
-| **this repo** | Markdown · stdlib Python 3 | Cross-repo documentation, the config-contract registry, and the daily fleet pin | meta | — |
+File a bug against the repository it lives in. Open an issue here only about this
+repository's own documentation or tooling.
 
-The last row is easy to overlook: `tools/skkuverse_sync.py` is not documentation. It runs as a **blocking check in server, app and ai CI** (the crawler is the producer and has nothing to verify), so a bad commit here reddens three pipelines at once. See [`contracts/README.md`](contracts/README.md).
+## How changes propagate
+
+Configuration owned by one repo and vendored by another is a *contract*. Edit the
+producer's copy and open a PR. Each consumer adopts the change by running
+`skkuverse_sync.py pull`, which rewrites its lock file. Nothing is pushed across
+repository boundaries.
+
+<!-- contracts:start -->
+| Contract | Owned by | Vendored into | Enforced |
+| --- | --- | --- | --- |
+| `notices.categories` | [crawler] `py/generated/server-categories.json` | [server] `src/notices/categories.json` | yes |
+| `notices.exclude-reasons` | [crawler] `py/generated/server-exclude-reasons.json` | [server] `src/notices/exclude-reasons.json` | yes |
+| `notices.sources` | [crawler] `py/generated/server-sources.json` | [server] `src/notices/sources.json` | yes |
+| `notices.tab-keys` | [crawler] `py/generated/server-categories.json` | [app] `functions/src/notifications/tabsContract.generated.ts` | yes |
+| `notices.topic-cap` | [app] `functions/src/notifications/tabsContract.ts` | [server] `src/notices/notices.topics.ts` | yes |
+| `conventions.docs-template` | [umbrella] `docs/_template.md` | [server] `docs/_template.md`, [app] `docs/_template.md` | not yet |
+| `conventions.markdownlint` | [umbrella] `conventions/markdownlint.jsonc` | [server] `.markdownlint.jsonc`, [app] `.markdownlint.jsonc` | not yet |
+| `search.config` | [crawler] `search.json` | [ai] `app/generated/search.json`, [server] `src/notices/search.json` | not yet |
+| `search.source-whitelist` | [crawler] `py/generated/ai-sources.json` | [ai] `app/generated/sources.json` | not yet |
+
+9 contracts — 5 active, 4 planned.
+
+[ai]: https://github.com/spencer0124/skkuverse-ai
+[app]: https://github.com/spencer0124/skkuverse-app
+[crawler]: https://github.com/spencer0124/skkuverse-crawler
+[server]: https://github.com/spencer0124/skkuverse-server
+[umbrella]: https://github.com/spencer0124/skkuverse
+<!-- contracts:end -->
+
+Each consumer pins its copy by content hash in its own `.contracts.lock.json`, and the
+check comparing the two runs offline inside that repo's CI. So a red build is always
+fixable in the branch that caused it. [contracts/README.md](contracts/README.md) covers
+the mechanism and the day-to-day commands.
+
+## Conventions
+
+Rules that apply to every repository are defined once in [conventions/](conventions/) and
+enforced in each repo's CI. Conventions that are files travel as contracts, in the table
+above. Conventions that are properties of a repo's own files are checked by
+[`tools/conventions_lint.py`](tools/conventions_lint.py), which reads only the repository
+it is pointed at and needs no network.
+
+Prose style is enforced too. The rules live in [`.vale.ini`](.vale.ini) and
+[`styles/skkuverse/`](styles/skkuverse/). [conventions/prose.md](conventions/prose.md)
+explains what a linter cannot judge.
+
+`CONTRIBUTING.md` and the issue templates come from [spencer0124/.github][dotgithub],
+which GitHub applies to every repository in the org that does not define its own.
 
 ## Fleet snapshot
 
-Every repo's `main` as of the last daily snapshot. Written by
-[`.github/workflows/fleet-snapshot.yml`](.github/workflows/fleet-snapshot.yml), which pins each repo
-as a git submodule at the repository root once a day and commits — so this repository's history is a
-day-by-day record of what the whole system was.
+Each repo's `main` is pinned here as a git submodule once a day and committed, which makes
+this repository's history a day-by-day record of what the whole system was. The table is
+generated by [`tools/fleet_snapshot.py`](tools/fleet_snapshot.py). Do not edit it by hand.
 
 <!-- fleet:start -->
 | Repo | Pinned `main` | Committed (KST) | Subject |
@@ -47,40 +90,64 @@ day-by-day record of what the whole system was.
 | skkuverse-codepush | [`83f27d8`](https://github.com/spencer0124/skkuverse-codepush/commit/83f27d844fd54b046a511f010413527040572e86) | 2026-04-09 | chore: set TZ=Asia/Seoul in docker-compose |
 <!-- fleet:end -->
 
-This is a **pin, not a live view**, and that distinction is the point.
-`python3 tools/skkuverse_sync.py check --fleet` reads every repo's *current* `main` over the network;
-the two disagree by design whenever someone has pushed since the last snapshot. One answers what
-`main` **was**, the other what `main` **is**.
+A pin records where `main` pointed when the snapshot ran. For where it points now, run
+`skkuverse_sync.py check --fleet`, which reads every repo over the network. The two
+disagree whenever someone has pushed since the last snapshot.
 
-Why record it at all — git cannot reconstruct it afterwards. `git rev-list --before=<date> main`
-filters *all reachable commits* by date, so it happily returns a commit that sat on `dev` for days
-before being merged; it tells you what existed, not what `main` pointed at. Nothing in git stores a
-branch's historical tip except a reflog, which is local and expires.
+Git cannot reconstruct this after the fact, so it has to be recorded as it happens.
+[ADR 0003](docs/decisions/0003-daily-fleet-pin-as-submodules.md) explains why, and
+[how-to: expand a past snapshot](docs/how-to/expand-a-past-snapshot.md) covers opening a
+past day. Cloning this repository does not fetch those directories, and your own checkouts
+belong outside it.
 
-To see the whole system as it was on a given day:
+## Documentation
+
+System-wide knowledge lives in [docs/](docs/). Knowledge local to one repo lives in that
+repo's own `docs/`, owned by whoever writes the thing it describes.
+
+- [Docs index and writing rules](docs/README.md)
+- [System Context](docs/architecture/system-context.md) and
+  [Container View](docs/architecture/container-view.md) — the C4 levels
+- [Notice Pipeline](docs/flows/notice-pipeline.md) — the AI notice feature end to end
+- [Data Topology](docs/architecture/data-topology.md) — which repo owns which collection
+- [Decisions](docs/decisions/) — ADRs whose consequences cross repo boundaries
+
+Per-repo documentation: [server][skkuverse-server], [crawler][skkuverse-crawler],
+[ai][skkuverse-ai], [app][skkuverse-app].
+
+## Tooling
+
+Stdlib-only Python 3, with no dependencies at all. Sibling repos clone this directory
+during CI and run it with the system `python3`, so adding a dependency would mean adding an
+install step to every one of them.
 
 ```bash
-git rev-list -1 --before=2026-08-06 main   # that day's snapshot commit
-git ls-tree <commit> | grep ^160000        # every repo's main, as SHAs
-git submodule update --init                # expand it into the actual code
-git log -- 'skkuverse*' 'repos/*'          # only the days something moved
+python3 tools/skkuverse_sync.py status              # every contract at a glance (offline)
+python3 tools/skkuverse_sync.py check --fleet       # freshness across every repo (network)
+python3 tools/skkuverse_sync.py pull --all          # adopt upstream, rewrite locks
+python3 tools/skkuverse_sync.py explain <id>        # the full chain for one contract
+
+python3 tools/contracts_table.py --check            # verify the contract table above
+python3 tools/fleet_snapshot.py --check             # verify the fleet table above
+python3 tools/conventions_lint.py --root .          # language, frontmatter, docs structure
+
+python3 -m unittest discover -s tools/tests -v      # the tools' own tests
 ```
 
-Those six directories are a **record, not a workspace** — cloning this repository does not fetch them,
-and you should not initialise them unless you are deliberately expanding a past day. Your own checkouts
-live outside this repo.
+## Contributing
 
-## Per-repo documentation
+Open a PR against `main`. CI runs the unit tests and validates the manifest, then verifies
+both generated tables and checks this repository against the conventions it defines.
+[CLAUDE.md](CLAUDE.md) lists the working constraints.
 
-System-wide knowledge lives here; **repo-local knowledge lives in that repo's own `docs/`** — ownership follows whoever writes or migrates the thing.
+## License
 
-- [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) — read API contract, read indexes, FCM dispatch
-- [crawler docs](https://github.com/spencer0124/skkuverse-crawler/tree/main/docs) — crawl strategies, sources, **`skku_notices` schema (SSOT)**
-- [ai docs](https://github.com/spencer0124/skkuverse-ai/tree/main/docs) — LLM routing and provider fallback
-- [app docs](https://github.com/spencer0124/skkuverse-app/tree/main/docs) — client rendering, FCM delivery, build and release
-- [web](https://github.com/spencer0124/skkuverse.com) — marketing and landing (docs pending)
-- [codepush](https://github.com/spencer0124/skkuverse-codepush) — self-hosted OTA infrastructure
+[Apache-2.0](LICENSE).
 
-## Conventions
-
-Writing rules and the document index live in [docs/README.md](docs/README.md): Diátaxis structure, required frontmatter, and *point at the source, don't copy the value*. Working conventions for this repo, including the English-only rule, are in [CLAUDE.md](CLAUDE.md).
+[skkuverse-server]: https://github.com/spencer0124/skkuverse-server
+[skkuverse-crawler]: https://github.com/spencer0124/skkuverse-crawler
+[skkuverse-ai]: https://github.com/spencer0124/skkuverse-ai
+[skkuverse-app]: https://github.com/spencer0124/skkuverse-app
+[skkuverse.com]: https://github.com/spencer0124/skkuverse.com
+[skkuverse-codepush]: https://github.com/spencer0124/skkuverse-codepush
+[dotgithub]: https://github.com/spencer0124/.github

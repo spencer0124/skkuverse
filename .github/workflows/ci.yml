@@ -24,6 +24,65 @@ jobs:
       # regenerates the README block only when a pin actually moved, so it
       # will never silently correct a hand-edited one.
       - run: python3 tools/fleet_snapshot.py --check
+      # Same reasoning, for the table generated from the manifest. This one
+      # verifies completely rather than partially, because every input is a
+      # file in this repository.
+      - run: python3 tools/contracts_table.py --check
+      # And for the document index, which is built from each document's own
+      # frontmatter. This is what makes a new document impossible to leave
+      # out: nothing has to be registered, so nothing can be forgotten.
+      - run: python3 tools/docs_index.py --check
       # The repo that defines the conventions has to satisfy them, or nobody
       # else has a reason to. Same command the siblings run.
       - run: python3 tools/conventions_lint.py --root .
+
+  # Split from `tools` because it needs a different binary and fails for a
+  # different reason. A red `tools` job means the fleet's contract tooling is
+  # broken; a red `prose` job means someone's writing drifted.
+  prose:
+    runs-on: ubuntu-latest
+    env:
+      # Pinned like any other dependency. .vale.ini pins the style packages the
+      # same way; neither is vendored, matching how the npm repos pin exact
+      # versions without committing node_modules.
+      VALE_VERSION: 3.17.0
+    steps:
+      - uses: actions/checkout@v4
+      # A single static Go binary, so there is no runtime to install and
+      # nothing for the siblings to adopt. Vale never enters tools/ - that is
+      # what keeps tools/ stdlib-only Python while the fleet still gets a
+      # prose gate.
+      - name: Install Vale
+        run: |
+          curl -sfL "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin vale
+          vale --version
+      # styles/ carries only our own rules. The third-party packages are
+      # pinned by release URL in .vale.ini and fetched here, the same split as
+      # package.json and node_modules. Without this step Vale exits 2 with
+      # "style does not exist" rather than checking nothing quietly, which is
+      # the right failure but still a failure.
+      - name: Fetch styles
+        run: vale sync
+      - name: Prose
+        shell: bash
+        run: |
+          # `shell: bash` and pipefail are both load-bearing, for the reason
+          # documented in fleet.yml: the implicit shell is `bash -e {0}`, which
+          # has errexit but not pipefail, so `vale | tee` would exit with tee's
+          # status and this job would pass while reporting findings.
+          set -o pipefail
+          # The submodule directories are a record of other repos, not this
+          # repo's text. Each sibling lints its own prose, and linting theirs
+          # from here would report failures nobody can fix in this branch.
+          vale --glob='!skkuverse*/**' --output=line . | tee -a "$GITHUB_STEP_SUMMARY"
+      # Bold-for-emphasis and sentence-length spread. Both need the markup or a
+      # statistic Vale cannot reach, so they live in stdlib Python instead.
+      # Deliberately not part of conventions_lint.py: that one is a blocking
+      # gate inside three sibling repos, and a sibling should not go red over a
+      # style opinion formed here.
+      - name: Prose metrics
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tools/prose_metrics.py --root . | tee -a "$GITHUB_STEP_SUMMARY"

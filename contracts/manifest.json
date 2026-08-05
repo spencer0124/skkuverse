@@ -204,7 +204,7 @@
           "mode": "copy"
         }
       ],
-      "note": "Rules central, globs local. Each repo keeps its own .markdownlint-cli2.jsonc naming which paths to lint, and `extends` this vendored rule block. The two pre-existing copies were byte-identical except for globs and ignores, which is what makes that split the right one.",
+      "note": "The producer carries the rule set only. Each repo keeps its own .markdownlint-cli2.jsonc naming which paths to lint, and `extends` this vendored block. See conventions/README.md for why the seam falls there.",
       "blockedBy": "Consumers do not vendor the file yet. Land the copy plus its lock entry in each repo first, then flip to active - a lock ahead of activation is safe, the reverse breaks the consumer's default branch."
     },
     {

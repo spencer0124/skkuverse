@@ -18,8 +18,11 @@ Two modes, deliberately asymmetric:
 markers are well-formed and that every SHA in the block matches the gitlink in
 the index, in `.gitmodules` order. It CANNOT confirm the date or subject text,
 because those live in the submodules' objects and ci.yml checks out with
-`submodules: false`. Saying so plainly beats implying a coverage that is not
-there — a check that silently stops checking is worse than no check.
+`submodules: false`. That gap is stated here rather than left implied, since a
+check believed to cover more than it does is the worse failure.
+
+Compare `contracts_table.py`, which verifies its block completely: every input
+it reads is a file in this repository.
 
 Why the check exists at all: the cron regenerates only when a pin actually
 moved, so it will never silently correct a hand-edited block.

@@ -13,7 +13,7 @@ audience: public
 
 ## Context
 
-SKKUverse is a campus app for Sungkyunkwan University students. Its core value is **gathering department notices scattered across dozens of sites into one place and structuring them with AI**. That shapes the boundary: the system touches two kinds of outside world — **the sources it scrapes** (SKKU department sites) and **the channel it pushes results through** (FCM).
+SKKUverse is a campus app for Sungkyunkwan University students. Its core value is gathering department notices scattered across dozens of sites into one place and structuring them with AI. That shapes the boundary. The system reaches outside itself for the sources it scrapes, meaning SKKU department sites, and for the channel it delivers results through, meaning FCM.
 
 ## Diagram
 
