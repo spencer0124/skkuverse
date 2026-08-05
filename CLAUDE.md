@@ -22,7 +22,9 @@ This applies to every artifact, not just the ones that reach GitHub:
 
 Korean product copy is the one carve-out, and only where it *is* the product: user-facing strings shipped to the app (`label.ko`, i18n bundles, notice content). Those are data, not documentation. Their surrounding code and comments stay English.
 
-**Why:** these repos are public and serve as a portfolio. A reader landing on `container-view.md` or a PR diff should not need Korean to follow the reasoning. Mixed-language docs also make search and grep unreliable — you cannot find "ownership" in a file that says "소유권".
+**Why:** these repos are public and serve as a portfolio. A reader landing on `container-view.md` or a PR diff should not need Korean to follow the reasoning. Mixed-language docs also make search and grep unreliable — you cannot find "ownership" in a file that says "소유권". <!-- conventions:allow-korean: the example is the point -->
+
+**Enforced, not merely stated.** `tools/conventions_lint.py` fails on Korean outside declared product copy. A single line may opt out with a `conventions:allow-korean` marker plus a reason — line-level and visible exactly where it applies, which beats a whole-file exemption sitting in a config file. Repo-wide product-copy paths belong in that repo's `.conventions.json`.
 
 When editing an existing file that still contains Korean, translate the parts you touch rather than matching the surrounding language.
 
@@ -46,6 +48,9 @@ python3 tools/skkuverse_sync.py validate-manifest   # schema + self-consistency
 
 python3 tools/fleet_snapshot.py                     # rewrite the README fleet table
 python3 tools/fleet_snapshot.py --check             # verify it, offline (what CI runs)
+
+python3 tools/conventions_lint.py --root .          # language, frontmatter, docs structure
+python3 tools/conventions_lint.py --root ../skkuverse-ai   # ...or any sibling
 
 python3 -m unittest discover -s tools/tests -v      # the tools' own tests
 ```

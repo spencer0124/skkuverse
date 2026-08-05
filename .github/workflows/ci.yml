@@ -24,3 +24,6 @@ jobs:
       # regenerates the README block only when a pin actually moved, so it
       # will never silently correct a hand-edited one.
       - run: python3 tools/fleet_snapshot.py --check
+      # The repo that defines the conventions has to satisfy them, or nobody
+      # else has a reason to. Same command the siblings run.
+      - run: python3 tools/conventions_lint.py --root .
