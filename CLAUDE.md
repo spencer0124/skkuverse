@@ -32,7 +32,7 @@ The umbrella repo for the SKKUverse ecosystem. Three distinct things live here:
 
 1. **`docs/`** — cross-repo knowledge only: system boundaries, data flows crossing repo lines, ownership maps, and ADRs whose consequences span repos. Repo-local knowledge belongs in that repo's own `docs/`.
 2. **`contracts/` + `tools/skkuverse_sync.py`** — an executable contract registry. It runs as a **blocking CI gate in three other repositories** (server, app, ai — the crawler is the producer and has nothing to verify), which is why this repo is not docs-only and why changes here have blast radius.
-3. **`.gitmodules` + `repos/`** — a daily pin of every repo's `main`, written by `.github/workflows/fleet-snapshot.yml`. It is **a record, not a workspace**: never develop in it, and do not `git submodule update --init` unless you are deliberately expanding a past day. It is also where fleet membership is declared — six repos, deliberately a superset of the contract manifest's four, because those answer different questions.
+3. **`.gitmodules` + the six `skkuverse-*/` directories** — a daily pin of every repo's `main`, written by `.github/workflows/fleet-snapshot.yml`. It is **a record, not a workspace**: never develop in it, and do not `git submodule update --init` unless you are deliberately expanding a past day. It is also where fleet membership is declared — six repos, deliberately a superset of the contract manifest's four, because those answer different questions.
 
 ## Commands
 

@@ -25,7 +25,7 @@ name: Fleet snapshot
 #
 # Commits every day, including days when nothing moved. The empty commits are
 # the liveness record. They cost nothing structurally, because an empty commit
-# touches no paths — so `git log` is the daily heartbeat and `git log -- repos/`
+# touches no paths — so `git log` is the daily heartbeat and `git log -- 'skkuverse*' 'repos/*'`
 # is still the change-only view. Two timelines, one history.
 on:
   schedule:
@@ -97,11 +97,11 @@ jobs:
       - name: Did anything move?
         id: moved
         run: |
-          if git diff --quiet -- repos; then
+          if git diff --quiet; then
             echo "moved=false" >> "$GITHUB_OUTPUT"
           else
             echo "moved=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --submodule=log -- repos
+            git --no-pager diff --submodule=log
           fi
 
       # Byte-identical output when nothing moved, so running it unconditionally
@@ -127,15 +127,15 @@ jobs:
           # that day".
           if [ "$MOVED" = "true" ]; then
             subject="chore(fleet): pin main as of ${date_kst} KST"
-            body="$(git --no-pager diff --submodule=log -- repos)"
+            body="$(git --no-pager diff --submodule=log)"
           else
             subject="chore(fleet): pin main as of ${date_kst} KST (no change)"
             body="No repo's main moved since the last snapshot."
           fi
 
-          git add -- repos README.md
+          git add -A
           # --allow-empty so every calendar date gets a row even on quiet days.
-          # The empty commits touch no paths, so `git log -- repos/` still
+          # The empty commits touch no paths, so `git log -- 'skkuverse*' 'repos/*'` still
           # filters to just the days something actually moved.
           git commit --allow-empty -m "$subject" -m "$body"
           git push origin "HEAD:$BRANCH"

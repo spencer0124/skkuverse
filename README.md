@@ -33,7 +33,7 @@ The last row is easy to overlook: `tools/skkuverse_sync.py` is not documentation
 
 Every repo's `main` as of the last daily snapshot. Written by
 [`.github/workflows/fleet-snapshot.yml`](.github/workflows/fleet-snapshot.yml), which pins each repo
-as a git submodule under `repos/` once a day and commits — so this repository's history is a
+as a git submodule at the repository root once a day and commits — so this repository's history is a
 day-by-day record of what the whole system was.
 
 <!-- fleet:start -->
@@ -61,13 +61,14 @@ To see the whole system as it was on a given day:
 
 ```bash
 git rev-list -1 --before=2026-08-06 main   # that day's snapshot commit
-git ls-tree <commit> repos/                # every repo's main, as SHAs
+git ls-tree <commit> | grep ^160000        # every repo's main, as SHAs
 git submodule update --init                # expand it into the actual code
-git log -- repos/                          # only the days something moved
+git log -- 'skkuverse*' 'repos/*'          # only the days something moved
 ```
 
-`repos/` is a record, not a workspace — cloning this repository does not fetch it, and you should not
-initialise it unless you are deliberately expanding a past day.
+Those six directories are a **record, not a workspace** — cloning this repository does not fetch them,
+and you should not initialise them unless you are deliberately expanding a past day. Your own checkouts
+live outside this repo.
 
 ## Per-repo documentation
 
