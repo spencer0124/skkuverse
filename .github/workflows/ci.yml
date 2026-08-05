@@ -57,6 +57,13 @@ jobs:
           curl -sfL "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
             | sudo tar -xz -C /usr/local/bin vale
           vale --version
+      # styles/ carries only our own rules. The third-party packages are
+      # pinned by release URL in .vale.ini and fetched here, the same split as
+      # package.json and node_modules. Without this step Vale exits 2 with
+      # "style does not exist" rather than checking nothing quietly, which is
+      # the right failure but still a failure.
+      - name: Fetch styles
+        run: vale sync
       - name: Prose
         shell: bash
         run: |
