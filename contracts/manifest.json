@@ -1,14 +1,33 @@
 {
   "manifestVersion": 1,
   "note": "Cross-repo contract topology. Pointers only - no schema content, no hashes, no values. Hashes and extracted values live in each consumer's .contracts.lock.json, written by tools/skkuverse_sync.py. This file changes only when the SET of contracts changes.",
-
   "repos": {
-    "crawler": { "github": "spencer0124/skkuverse-crawler", "branch": "main", "dir": "skkuverse-crawler" },
-    "server":  { "github": "spencer0124/skkuverse-server",  "branch": "main", "dir": "skkuverse-server" },
-    "app":     { "github": "spencer0124/skkuverse-app",     "branch": "main", "dir": "skkuverse-app" },
-    "ai":      { "github": "spencer0124/skkuverse-ai",      "branch": "main", "dir": "skkuverse-ai" }
+    "crawler": {
+      "github": "spencer0124/skkuverse-crawler",
+      "branch": "main",
+      "dir": "skkuverse-crawler"
+    },
+    "server": {
+      "github": "spencer0124/skkuverse-server",
+      "branch": "main",
+      "dir": "skkuverse-server"
+    },
+    "app": {
+      "github": "spencer0124/skkuverse-app",
+      "branch": "main",
+      "dir": "skkuverse-app"
+    },
+    "ai": {
+      "github": "spencer0124/skkuverse-ai",
+      "branch": "main",
+      "dir": "skkuverse-ai"
+    },
+    "umbrella": {
+      "github": "spencer0124/skkuverse",
+      "branch": "main",
+      "dir": "skkuverse"
+    }
   },
-
   "contracts": [
     {
       "id": "notices.sources",
@@ -17,11 +36,21 @@
       "producer": {
         "repo": "crawler",
         "path": "py/generated/server-sources.json",
-        "derivedFrom": ["sources.json", "exclude-reasons.json"],
+        "derivedFrom": [
+          "sources.json",
+          "exclude-reasons.json"
+        ],
         "generatedBy": "py/scripts/generate_artifacts.py :: gen_sources_json"
       },
       "consumers": [
-        { "repo": "server", "path": "src/notices/sources.json", "mode": "copy", "requires": ["server-build-asset"] }
+        {
+          "repo": "server",
+          "path": "src/notices/sources.json",
+          "mode": "copy",
+          "requires": [
+            "server-build-asset"
+          ]
+        }
       ],
       "note": "A transform, not a byte copy of sources.json: hasCategory/hasAuthor are derived from `strategy` via STRATEGY_FEATURES. Compare against the generated artifact, never against the SSOT."
     },
@@ -32,11 +61,21 @@
       "producer": {
         "repo": "crawler",
         "path": "py/generated/server-categories.json",
-        "derivedFrom": ["categories.json", "sources.json"],
+        "derivedFrom": [
+          "categories.json",
+          "sources.json"
+        ],
         "generatedBy": "py/scripts/generate_artifacts.py :: gen_server_categories"
       },
       "consumers": [
-        { "repo": "server", "path": "src/notices/categories.json", "mode": "copy", "requires": ["server-build-asset"] }
+        {
+          "repo": "server",
+          "path": "src/notices/categories.json",
+          "mode": "copy",
+          "requires": [
+            "server-build-asset"
+          ]
+        }
       ],
       "note": "picker sourceIds are filtered (crawlAvailable OR excludeReason != null), so this differs structurally from categories.json."
     },
@@ -47,11 +86,20 @@
       "producer": {
         "repo": "crawler",
         "path": "py/generated/server-exclude-reasons.json",
-        "derivedFrom": ["exclude-reasons.json"],
+        "derivedFrom": [
+          "exclude-reasons.json"
+        ],
         "generatedBy": "py/scripts/generate_artifacts.py :: gen_exclude_reasons_map"
       },
       "consumers": [
-        { "repo": "server", "path": "src/notices/exclude-reasons.json", "mode": "copy", "requires": ["server-build-asset"] }
+        {
+          "repo": "server",
+          "path": "src/notices/exclude-reasons.json",
+          "mode": "copy",
+          "requires": [
+            "server-build-asset"
+          ]
+        }
       ],
       "note": "List -> {id: label} map. tabconfig.service.ts already fails boot if a sources.json excludeReason has no entry here - that is a partial-copy detector, not a drift detector."
     },
@@ -98,10 +146,24 @@
       "id": "search.config",
       "kind": "file",
       "status": "planned",
-      "producer": { "repo": "crawler", "path": "search.json" },
+      "producer": {
+        "repo": "crawler",
+        "path": "search.json"
+      },
       "consumers": [
-        { "repo": "ai", "path": "app/generated/search.json", "mode": "copy" },
-        { "repo": "server", "path": "src/notices/search.json", "mode": "copy", "requires": ["server-build-asset"] }
+        {
+          "repo": "ai",
+          "path": "app/generated/search.json",
+          "mode": "copy"
+        },
+        {
+          "repo": "server",
+          "path": "src/notices/search.json",
+          "mode": "copy",
+          "requires": [
+            "server-build-asset"
+          ]
+        }
       ],
       "note": "Producer does not exist yet (skkuverse-crawler docs/search-mcp-plan.md Phase 1). The ai copy is currently HAND_AUTHORED_TEMPORARY with a _provenance key and a pre-adr-007 schema. Listed while planned so the gap is visible in every `status` run rather than only in a README."
     },
@@ -109,11 +171,64 @@
       "id": "search.source-whitelist",
       "kind": "file",
       "status": "planned",
-      "producer": { "repo": "crawler", "path": "py/generated/ai-sources.json" },
+      "producer": {
+        "repo": "crawler",
+        "path": "py/generated/ai-sources.json"
+      },
       "consumers": [
-        { "repo": "ai", "path": "app/generated/sources.json", "mode": "copy" }
+        {
+          "repo": "ai",
+          "path": "app/generated/sources.json",
+          "mode": "copy"
+        }
       ],
       "note": "For the planned MCP list_sources tool. Neither side exists yet."
+    },
+    {
+      "id": "conventions.markdownlint",
+      "kind": "file",
+      "status": "planned",
+      "producer": {
+        "repo": "umbrella",
+        "path": "conventions/markdownlint.jsonc"
+      },
+      "consumers": [
+        {
+          "repo": "server",
+          "path": ".markdownlint.jsonc",
+          "mode": "copy"
+        },
+        {
+          "repo": "app",
+          "path": ".markdownlint.jsonc",
+          "mode": "copy"
+        }
+      ],
+      "note": "Rules central, globs local. Each repo keeps its own .markdownlint-cli2.jsonc naming which paths to lint, and `extends` this vendored rule block. The two pre-existing copies were byte-identical except for globs and ignores, which is what makes that split the right one.",
+      "blockedBy": "Consumers do not vendor the file yet. Land the copy plus its lock entry in each repo first, then flip to active - a lock ahead of activation is safe, the reverse breaks the consumer's default branch."
+    },
+    {
+      "id": "conventions.docs-template",
+      "kind": "file",
+      "status": "planned",
+      "producer": {
+        "repo": "umbrella",
+        "path": "docs/_template.md"
+      },
+      "consumers": [
+        {
+          "repo": "server",
+          "path": "docs/_template.md",
+          "mode": "copy"
+        },
+        {
+          "repo": "app",
+          "path": "docs/_template.md",
+          "mode": "copy"
+        }
+      ],
+      "note": "Three copies exist today; server's and app's are byte-identical except for last-updated, and the umbrella's is an English rewrite. The propagation chain was app -> server -> umbrella by manual copy, which is exactly the pattern the contract system replaces.",
+      "blockedBy": "Same ordering as conventions.markdownlint. Also needs the Korean skeleton comments in the consumer copies replaced by the umbrella's English version."
     }
   ]
 }
