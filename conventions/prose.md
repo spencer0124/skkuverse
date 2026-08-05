@@ -23,9 +23,8 @@ vale docs/architecture/container-view.md     # one file
 
 Vale is a single static Go binary with no runtime. It never enters `exported/`, which is
 what lets the exported scripts stay stdlib-only while the fleet still gets a prose gate.
-The glob
-excludes the submodule directories, since those record other repositories and each one
-lints its own writing.
+The glob excludes the submodule directories, since those record other repositories and
+each one lints its own writing.
 
 ## What is enforced
 
@@ -33,12 +32,16 @@ lints its own writing.
 by release URL in `.vale.ini`. It covers contrastive formulas, mic-drop closers,
 metacommentary, verb tricolons, rhetorical self-answers, and an overused-vocabulary list.
 
-These rules are ours, because nothing published covers them:
+One rule is ours, because nothing published implements it:
 
 | Rule | Why it exists |
 | --- | --- |
 | [`EmDashDensity`](../styles/skkuverse/EmDashDensity.yml) | The upstream rule flags every em dash, and the Google and Microsoft packages check only whether the dash is spaced. Density is the actual signal. |
-| [`BoldEmphasis`](../styles/skkuverse/BoldEmphasis.yml) | Google states the rule in prose and provides no check. Bold belongs on run-in headings, and emphasis belongs in the words. |
+
+Bold-for-emphasis is the other gap Google states in prose and ships no check for, but it
+cannot be expressed in Vale at all: Vale strips markup before a rule sees the text, and its
+`scope: raw` escape hatch then reads fenced code too. It lives in
+[`../internal/check/prose.py`](../internal/check/prose.py) instead.
 
 ## What no linter can decide
 
@@ -74,8 +77,8 @@ linter dislikes. Cut the framing around the claim rather than the claim.
 Vale reads HTML comments, so exceptions live on the line they apply to:
 
 ```markdown
-<!-- vale skkuverse.BoldEmphasis = NO -->
-The rendered output shows **Save** in bold, matching the button.
+<!-- vale skkuverse.EmDashDensity = NO -->
+A quoted passage — from elsewhere — whose punctuation is not ours to change.
 ```
 
 Whole regions can opt out with `<!-- vale off -->` and `<!-- vale on -->`, though a region
@@ -88,7 +91,7 @@ exceptions separates each one from its reason.
 ## Adopting this in a repo
 
 The rules travel by the umbrella clone the repo's CI already makes for
-`skkuverse_sync.py`, so there is nothing to vendor and nothing to install:
+`sync_contracts.py`, so there is nothing to vendor and nothing to install:
 
 ```yaml
 - name: Fetch tooling

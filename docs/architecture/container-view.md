@@ -107,7 +107,7 @@ Once a day a scheduled workflow in this repository pins every repo's `main` as a
 Two distinctions are worth holding onto, because both are easy to get backwards:
 
 - **`.gitmodules` and `contracts/manifest.json` answer different questions.** The manifest declares the repos that exchange configuration. `.gitmodules` declares the repos that belong to SKKUverse, deliberately a superset, and neither is derived from the other.
-- **A pin records where `main` pointed. `check --fleet` reads where it points now.** `skkuverse_sync.py check --fleet` queries every repo's live `main` over the network, so the two disagree whenever anyone has pushed since the last snapshot. That disagreement is expected rather than drift.
+- **A pin records where `main` pointed. `check --fleet` reads where it points now.** `sync_contracts.py check --fleet` queries every repo's live `main` over the network, so the two disagree whenever anyone has pushed since the last snapshot. That disagreement is expected rather than drift.
 
 It has to be recorded as it happens, because git cannot reconstruct it afterwards. [ADR 0003](../decisions/0003-daily-fleet-pin-as-submodules.md) works through why.
 

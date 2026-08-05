@@ -70,16 +70,16 @@ python3 internal/check/prose.py --root . --report
 
 | Check | Tool | Rule |
 | --- | --- | --- |
-| `language` | `conventions_lint.py` | No Korean in `docs/`, `README.md` or `CLAUDE.md` outside declared product copy |
-| `frontmatter` | `conventions_lint.py` | Every document under `docs/` has the required keys, valid enums, an ISO date |
-| `structure` | `conventions_lint.py` | `docs/` subdirectories are Diátaxis folders rather than ad-hoc ones |
-| `bold` | `prose_metrics.py` | Bold reserved for run-in headings, not mid-sentence emphasis |
-| `burstiness` | `prose_metrics.py` | Sentence lengths vary rather than settling into one rhythm |
+| `language` | `lint_conventions.py` | No Korean in `docs/`, `README.md` or `CLAUDE.md` outside declared product copy |
+| `frontmatter` | `lint_conventions.py` | Every document under `docs/` has the required keys, valid enums, an ISO date |
+| `structure` | `lint_conventions.py` | `docs/` subdirectories are Diátaxis folders rather than ad-hoc ones |
+| `bold` | `prose.py` | Bold reserved for run-in headings, not mid-sentence emphasis |
+| `burstiness` | `prose.py` | Sentence lengths vary rather than settling into one rhythm |
 
 Both read only the repo they are pointed at, so both are offline and safe to block a merge
 on. That is the governing rule stated in [CLAUDE.md](../CLAUDE.md#constraints-that-are-not-negotiable).
 
-`conventions_lint.py` is the one siblings run. `prose_metrics.py` runs here only, because a
+`lint_conventions.py` is the one siblings run. `prose.py` runs here only, because a
 sibling should not go red over a style opinion formed in this repository.
 
 ## Declaring an exception
@@ -114,7 +114,7 @@ in a distant config file. In Markdown the HTML comment renders as nothing.
 ## Adopting this in a repo
 
 The tool comes from the umbrella clone the repo's CI already makes for
-`skkuverse_sync.py`, so adoption costs two lines of YAML and no new dependency:
+`sync_contracts.py`, so adoption costs two lines of YAML and no new dependency:
 
 ```yaml
 - name: Fetch contract tooling

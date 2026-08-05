@@ -4,7 +4,7 @@
 // vendors as `.markdownlint.jsonc` and pins by content hash. Whether that
 // contract is enforced yet is state, so it is generated onto the landing page
 // rather than written here. Never edit a vendored copy: edit this file and run
-// `skkuverse_sync.py pull --all`.
+// `sync_contracts.py pull --all`.
 //
 // This file carries only the rule set. Each repo names its own paths in its
 // own `.markdownlint-cli2.jsonc`, for the reason given in
