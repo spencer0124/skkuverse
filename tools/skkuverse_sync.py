@@ -493,10 +493,36 @@ def cmd_check_repo(manifest: dict[str, Any], repo: str, root: Path) -> int:
 # pull (adopt upstream, rewrite locks)
 # ---------------------------------------------------------------------------
 def pull_repo(
-    manifest: dict[str, Any], repo: str, root: Path, *, local: bool,
+    manifest: dict[str, Any], repo: str, root: Path, *,
+    local: bool, adopt: list[str] | None = None,
 ) -> tuple[int, list[str]]:
-    """Returns (files_changed, report lines)."""
+    """Returns (files_changed, report lines).
+
+    `adopt` names contracts to pull regardless of status, which is what makes
+    the documented adoption order executable. A contract has to reach every
+    consumer's default branch BEFORE it flips to `active`, or activation
+    breaks each consumer until its lock lands — and `check` already tolerates
+    a lock entry ahead of activation for exactly that reason.
+
+    Named per contract rather than a blanket include-planned, because
+    `planned` covers two different things: contracts being adopted right now,
+    and contracts whose producer does not exist yet. Pulling the second kind
+    fails closed, correctly, and would block the first.
+    """
+    adopt = adopt or []
     pairs = contracts_for_consumer(manifest, repo)
+    if adopt:
+        known = {c["id"] for c in manifest["contracts"]}
+        unknown = [cid for cid in adopt if cid not in known]
+        if unknown:
+            raise ContractError(f"unknown contract(s) to adopt: {unknown}")
+        have = {c["id"] for c, _ in pairs}
+        for contract in manifest["contracts"]:
+            if contract["id"] in adopt and contract["id"] not in have:
+                pairs += [
+                    (contract, consumer)
+                    for consumer in contract["consumers"] if consumer["repo"] == repo
+                ]
     lines: list[str] = []
     if not pairs:
         planned = [
@@ -658,7 +684,8 @@ def _entry_content(entry: dict[str, Any]) -> dict[str, Any]:
 
 
 def cmd_pull(
-    manifest: dict[str, Any], repos: list[str], root: Path | None, *, local: bool,
+    manifest: dict[str, Any], repos: list[str], root: Path | None, *,
+    local: bool, adopt: list[str] | None = None,
 ) -> int:
     total_changed = 0
     needs_commit: list[str] = []
@@ -667,7 +694,9 @@ def cmd_pull(
         if not repo_root.is_dir():
             print(f"  {repo:<9}skipped (no checkout at {repo_root})")
             continue
-        changed, lines = pull_repo(manifest, repo, repo_root, local=local)
+        changed, lines = pull_repo(
+            manifest, repo, repo_root, local=local, adopt=adopt,
+        )
         total_changed += changed
         print(f"  {repo}")
         for line in lines:
@@ -1105,6 +1134,10 @@ def build_parser() -> argparse.ArgumentParser:
     pull.add_argument("--root", help="that repo's checkout (default: the sibling dir)")
     pull.add_argument("--local", action="store_true",
                       help="read producers from sibling working trees, not origin/main")
+    pull.add_argument("--adopt", action="append", metavar="CONTRACT_ID",
+                      help="also pull this contract even if it is still `planned`, "
+                           "so a consumer can land its lock before the activation "
+                           "flips. Repeatable.")
 
     explain = sub.add_parser("explain", help="print the full chain for one contract")
     explain.add_argument("contract_id")
@@ -1140,7 +1173,9 @@ def main(argv: list[str] | None = None) -> int:
         root = Path(args.root).resolve() if args.root else None
         if root is not None and len(repos) > 1:
             raise ContractError("--root applies to a single --repo, not --all")
-        return cmd_pull(manifest, repos, root, local=args.local)
+        return cmd_pull(
+            manifest, repos, root, local=args.local, adopt=args.adopt,
+        )
 
     if args.command == "explain":
         return cmd_explain(manifest, args.contract_id)
