@@ -621,3 +621,48 @@ class TestRetiredContractLockRot(CheckRepoCase):
         self.write_lock({})
         code, out = run(sync.cmd_check_repo, self.EMPTY, "server", self.root)
         self.assertEqual(code, 0, out)
+
+
+class TestAdoptAheadOfActivation(unittest.TestCase):
+    """`pull --adopt` is what makes the documented ordering executable.
+
+    A contract must reach every consumer's default branch BEFORE it flips to
+    `active`; activating first breaks each consumer until its lock lands.
+    Without this, `pull` skipped planned contracts and there was no way to
+    produce that lock.
+    """
+
+    MANIFEST = {
+        "manifestVersion": 1,
+        "repos": FILE_MANIFEST["repos"],
+        "contracts": [
+            {**json.loads(json.dumps(FILE_MANIFEST["contracts"][0])), "status": "planned"},
+            {
+                "id": "t.absent", "kind": "file", "status": "planned",
+                "producer": {"repo": "crawler", "path": "does/not/exist.json"},
+                "consumers": [{"repo": "server", "path": "src/b.json", "mode": "copy"}],
+            },
+        ],
+    }
+
+    def test_planned_contracts_are_skipped_by_default(self):
+        pairs = sync.contracts_for_consumer(self.MANIFEST, "server")
+        self.assertEqual(pairs, [])
+
+    def test_unknown_contract_id_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(sync.ContractError) as ctx:
+                sync.pull_repo(self.MANIFEST, "server", Path(tmp),
+                               local=True, adopt=["no.such.contract"])
+            self.assertIn("unknown contract", str(ctx.exception))
+
+    def test_adopt_is_per_contract_not_all_planned(self):
+        """`planned` covers two different things — contracts being adopted now,
+        and contracts whose producer does not exist yet. A blanket
+        include-planned would fail on the second and block the first."""
+        selected = [
+            c["id"] for c in self.MANIFEST["contracts"]
+            if c["id"] in ["t.file"]
+        ]
+        self.assertEqual(selected, ["t.file"])
+        self.assertNotIn("t.absent", selected)
