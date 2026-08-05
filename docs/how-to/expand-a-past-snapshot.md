@@ -92,4 +92,4 @@ git show <commit>:.gitmodules
 
 - [ADR 0003 — Daily fleet pin as git submodules](../decisions/0003-daily-fleet-pin-as-submodules.md)
 - [Container View](../architecture/container-view.md) — where this sits among the seams
-- [`tools/fleet_snapshot.py`](../../tools/fleet_snapshot.py) — renders the pins onto the landing page
+- [`internal/render/fleet_table.py`](../../internal/render/fleet_table.py) — renders the pins onto the landing page

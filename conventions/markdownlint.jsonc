@@ -4,7 +4,7 @@
 // vendors as `.markdownlint.jsonc` and pins by content hash. Whether that
 // contract is enforced yet is state, so it is generated onto the landing page
 // rather than written here. Never edit a vendored copy: edit this file and run
-// `skkuverse_sync.py pull --all`.
+// `sync_contracts.py pull --all`.
 //
 // This file carries only the rule set. Each repo names its own paths in its
 // own `.markdownlint-cli2.jsonc`, for the reason given in
@@ -25,7 +25,7 @@
   "MD013": false, // line-length — prose is wrapped by meaning, not column count
   "MD033": false, // inline HTML — <details> and <br> are used deliberately
   "MD024": { "siblings_only": true }, // duplicate headings — banned only among siblings, so release-note and timeline patterns work
-  "MD036": false, // emphasis-as-heading — a run-in heading opening a list item is the documented idiom. Bold used mid-sentence is a different thing, and tools/prose_metrics.py catches that
+  "MD036": false, // emphasis-as-heading — a run-in heading opening a list item is the documented idiom. Bold used mid-sentence is a different thing, and internal/check/prose.py catches that
   "MD028": false, // blanks-inside-blockquote — `> summary` followed by `> [!NOTE]` is the documented doc skeleton
 
   // ── Enforced. Listed explicitly even where `default: true` already covers

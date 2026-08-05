@@ -5,7 +5,7 @@ bug here reddens the whole fleet at once. The bias throughout is toward
 testing that things fail *closed* — a check that silently stops checking is
 the failure mode this whole system exists to prevent.
 
-    python3 -m unittest discover -s tools/tests -v
+    python3 -m unittest discover -s tests -v
 """
 
 from __future__ import annotations
@@ -19,12 +19,12 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parents[1]
-UMBRELLA_ROOT = TOOLS_DIR.parent
+UMBRELLA_ROOT = Path(__file__).resolve().parents[1]
+EXPORTED_DIR = UMBRELLA_ROOT / "exported"
 
-sys.path.insert(0, str(TOOLS_DIR))
+sys.path.insert(0, str(EXPORTED_DIR))
 _spec = importlib.util.spec_from_file_location(
-    "skkuverse_sync", TOOLS_DIR / "skkuverse_sync.py",
+    "sync_contracts", EXPORTED_DIR / "sync_contracts.py",
 )
 assert _spec is not None and _spec.loader is not None
 sync = importlib.util.module_from_spec(_spec)

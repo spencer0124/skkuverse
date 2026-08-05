@@ -21,7 +21,7 @@ Those need different mechanisms, and conflating them is why the previous attempt
 | Kind | Example | Mechanism | Where it lives |
 | --- | --- | --- | --- |
 | A file | markdownlint rules, the doc template, the Vale config | Contract: vendored, hash-locked, CI-enforced | `conventions/`, declared in [`../contracts/manifest.json`](../contracts/manifest.json) |
-| A property | "no Korean outside product copy", "every doc has frontmatter" | Linter: [`../tools/conventions_lint.py`](../tools/conventions_lint.py) and [`../tools/prose_metrics.py`](../tools/prose_metrics.py) | run in each repo's CI |
+| A property | "no Korean outside product copy", "every doc has frontmatter" | Linter: [`../exported/lint_conventions.py`](../exported/lint_conventions.py) and [`../internal/check/prose.py`](../internal/check/prose.py) | run in each repo's CI |
 | A GitHub feature | `CONTRIBUTING.md`, issue templates | Default community health files | [`spencer0124/.github`](https://github.com/spencer0124/.github) |
 
 No new machinery was built for the first row. A shared config file is precisely "one repo
@@ -63,23 +63,23 @@ though it lives under `docs/` because the umbrella uses it itself.
 Run them against any repo, including from a sibling's CI:
 
 ```bash
-python3 tools/conventions_lint.py --root .
-python3 tools/conventions_lint.py --root . --only language
-python3 tools/prose_metrics.py --root . --report
+python3 exported/lint_conventions.py --root .
+python3 exported/lint_conventions.py --root . --only language
+python3 internal/check/prose.py --root . --report
 ```
 
 | Check | Tool | Rule |
 | --- | --- | --- |
-| `language` | `conventions_lint.py` | No Korean in `docs/`, `README.md` or `CLAUDE.md` outside declared product copy |
-| `frontmatter` | `conventions_lint.py` | Every document under `docs/` has the required keys, valid enums, an ISO date |
-| `structure` | `conventions_lint.py` | `docs/` subdirectories are Diátaxis folders rather than ad-hoc ones |
-| `bold` | `prose_metrics.py` | Bold reserved for run-in headings, not mid-sentence emphasis |
-| `burstiness` | `prose_metrics.py` | Sentence lengths vary rather than settling into one rhythm |
+| `language` | `lint_conventions.py` | No Korean in `docs/`, `README.md` or `CLAUDE.md` outside declared product copy |
+| `frontmatter` | `lint_conventions.py` | Every document under `docs/` has the required keys, valid enums, an ISO date |
+| `structure` | `lint_conventions.py` | `docs/` subdirectories are Diátaxis folders rather than ad-hoc ones |
+| `bold` | `prose.py` | Bold reserved for run-in headings, not mid-sentence emphasis |
+| `burstiness` | `prose.py` | Sentence lengths vary rather than settling into one rhythm |
 
 Both read only the repo they are pointed at, so both are offline and safe to block a merge
 on. That is the governing rule stated in [CLAUDE.md](../CLAUDE.md#constraints-that-are-not-negotiable).
 
-`conventions_lint.py` is the one siblings run. `prose_metrics.py` runs here only, because a
+`lint_conventions.py` is the one siblings run. `prose.py` runs here only, because a
 sibling should not go red over a style opinion formed in this repository.
 
 ## Declaring an exception
@@ -114,13 +114,13 @@ in a distant config file. In Markdown the HTML comment renders as nothing.
 ## Adopting this in a repo
 
 The tool comes from the umbrella clone the repo's CI already makes for
-`skkuverse_sync.py`, so adoption costs two lines of YAML and no new dependency:
+`sync_contracts.py`, so adoption costs two lines of YAML and no new dependency:
 
 ```yaml
 - name: Fetch contract tooling
   run: git clone --depth 1 https://github.com/spencer0124/skkuverse "$RUNNER_TEMP/sv"
 - name: Conventions
-  run: python3 "$RUNNER_TEMP/sv/tools/conventions_lint.py" --root .
+  run: python3 "$RUNNER_TEMP/sv/exported/lint_conventions.py" --root .
 ```
 
 `--only` exists for repos mid-migration. Adopt `frontmatter` and `structure` first, then

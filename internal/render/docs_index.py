@@ -20,7 +20,7 @@ document.
 Offline and deterministic, like the other generators here. The summary text
 comes from the document, so it cannot drift from what it describes.
 
-Stdlib only, same as the rest of tools/.
+Stdlib only, same as everything under `internal/`.
 """
 
 from __future__ import annotations
@@ -30,8 +30,8 @@ import re
 import sys
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parent
-UMBRELLA_ROOT = TOOLS_DIR.parent
+# parents[2] because this sits at internal/render/, two levels down.
+UMBRELLA_ROOT = Path(__file__).resolve().parents[2]
 DOCS_README = UMBRELLA_ROOT / "docs" / "README.md"
 
 START = "<!-- index:start -->"
@@ -164,7 +164,7 @@ def check() -> int:
         return 1
     if found != render():
         print("docs/README.md index does not match the documents on disk.", file=sys.stderr)
-        print("  Fix: python3 tools/docs_index.py", file=sys.stderr)
+        print("  Fix: python3 internal/render/docs_index.py", file=sys.stderr)
         return 1
     print(f"docs index ok — {len(documents())} documents")
     return 0

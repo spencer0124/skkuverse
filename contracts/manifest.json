@@ -1,6 +1,6 @@
 {
   "manifestVersion": 1,
-  "note": "Cross-repo contract topology. Pointers only - no schema content, no hashes, no values. Hashes and extracted values live in each consumer's .contracts.lock.json, written by tools/skkuverse_sync.py. This file changes only when the SET of contracts changes.",
+  "note": "Cross-repo contract topology. Pointers only - no schema content, no hashes, no values. Hashes and extracted values live in each consumer's .contracts.lock.json, written by exported/sync_contracts.py. This file changes only when the SET of contracts changes.",
   "repos": {
     "crawler": {
       "github": "spencer0124/skkuverse-crawler",

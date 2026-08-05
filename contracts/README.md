@@ -9,12 +9,12 @@ audience: public
 
 # Cross-Repo Config Contracts
 
-> Configuration owned by one repo and vendored by another is a *contract*. [`manifest.json`](manifest.json) is the list of them, and [`../tools/skkuverse_sync.py`](../tools/skkuverse_sync.py) is what keeps the copies honest.
+> Configuration owned by one repo and vendored by another is a *contract*. [`manifest.json`](manifest.json) is the list of them, and [`../exported/sync_contracts.py`](../exported/sync_contracts.py) is what keeps the copies honest.
 
 The whole fleet in one command:
 
 ```bash
-python3 tools/skkuverse_sync.py status
+python3 exported/sync_contracts.py status
 ```
 
 ## Why this exists
@@ -82,7 +82,7 @@ For `mode: generate` the two hashes differ by construction — `sha256` is of th
 ## Kinds of contract
 
 - **`kind: file`, `mode: copy`** — a byte copy.
-- **`kind: file`, `mode: generate`** — a generator in [`../tools/generators/`](../tools/generators/) derives the consumer file from the producer's. Generators must be deterministic: `pull` produces the file and `status` reproduces it to verify, so any nondeterminism reads as drift.
+- **`kind: file`, `mode: generate`** — a generator in [`../exported/generators/`](../exported/generators/) derives the consumer file from the producer's. Generators must be deterministic: `pull` produces the file and `status` reproduces it to verify, so any nondeterminism reads as drift.
 - **`kind: constant`** — a constant in source rather than a file, pulled out by regex and fail-closed. Anything other than exactly one match raises. "I can no longer find this constant" has to be a build failure, or a rename silently disables the check forever.
 
 `relation` is `eq`, `lte` or `gte`. Direction matters for some contracts. `notices.topic-cap` is `lte` because the Cloud Function rejects any payload above `MAX_TOPICS`, so the server's `TOPIC_CAP` must stay at or below it — and only `lte` keeps the app-first deploy order that [ADR 0005 in skkuverse-server](https://github.com/spencer0124/skkuverse-server/blob/main/docs/decisions/0005-notice-dispatch-content-group.md) mandates green at every step:
@@ -100,19 +100,19 @@ For `mode: generate` the two hashes differ by construction — `sha256` is of th
 
 ```bash
 # whole fleet, offline, local working trees
-python3 tools/skkuverse_sync.py status
+python3 exported/sync_contracts.py status
 
 # same, against origin/main
-python3 tools/skkuverse_sync.py status --remote
+python3 exported/sync_contracts.py status --remote
 
 # adopt upstream and refresh locks
-python3 tools/skkuverse_sync.py pull --all
+python3 exported/sync_contracts.py pull --all
 
 # the full chain for one contract
-python3 tools/skkuverse_sync.py explain notices.topic-cap
+python3 exported/sync_contracts.py explain notices.topic-cap
 
 # what CI runs, from inside a consumer repo
-python3 tools/skkuverse_sync.py check --repo server --root .
+python3 exported/sync_contracts.py check --repo server --root .
 ```
 
 `pull` rewrites a lock only when a value actually changed. `syncedAt` and `producer.commit` are provenance and are never compared. On a clean fleet it produces zero diffs, and without that property every run would dirty every repo and nobody would trust the tool.
@@ -120,13 +120,13 @@ python3 tools/skkuverse_sync.py check --repo server --root .
 ### Adding a contract
 
 1. Add the entry to `manifest.json` (starting at `status: "planned"` is fine).
-2. `python3 tools/skkuverse_sync.py validate-manifest`
+2. `python3 exported/sync_contracts.py validate-manifest`
 3. `pull --repo <consumer>`, then commit the lock in the consumer repo.
 4. Flip to `status: "active"` in a follow-up.
 
 That order matters: `check` tolerates a lock entry that is ahead of its activation, but activating first breaks the consumer's default branch until its lock lands.
 
-For `mode: generate`, add the generator under `tools/generators/` and register it in `_load_generators()`. If the consumer is the server and the target is a runtime JSON under `src/`, add `"requires": ["server-build-asset"]` — a file missing from `scripts/copy-build-assets.js` exists in `src/` but vanishes from `dist/`, and the container dies at boot.
+For `mode: generate`, add the generator under `exported/generators/` and register it in `_load_generators()`. If the consumer is the server and the target is a runtime JSON under `src/`, add `"requires": ["server-build-asset"]` — a file missing from `scripts/copy-build-assets.js` exists in `src/` but vanishes from `dist/`, and the container dies at boot.
 
 ## Gotchas
 

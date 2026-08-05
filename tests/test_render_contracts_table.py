@@ -5,7 +5,7 @@ that matters most is a wrong number rendered confidently. The rest guard the
 same quiet failures as the fleet block: a malformed marker region, output that
 depends on manifest key order, and drift that no check reports.
 
-    python3 -m unittest discover -s tools/tests -v
+    python3 -m unittest discover -s tests -v
 """
 
 from __future__ import annotations
@@ -15,10 +15,10 @@ import sys
 import unittest
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parents[1]
+RENDER_DIR = Path(__file__).resolve().parents[1] / "internal" / "render"
 
 _spec = importlib.util.spec_from_file_location(
-    "contracts_table", TOOLS_DIR / "contracts_table.py",
+    "contracts_table", RENDER_DIR / "contracts_table.py",
 )
 assert _spec is not None and _spec.loader is not None
 ct = importlib.util.module_from_spec(_spec)

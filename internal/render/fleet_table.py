@@ -7,11 +7,11 @@ the rendering that puts them on the landing page.
 
 Two modes, deliberately asymmetric:
 
-    fleet_snapshot.py            rewrite the block. Needs the submodules
+    fleet_table.py            rewrite the block. Needs the submodules
                                  checked out, because the date and subject
                                  come from their object stores. The cron.
 
-    fleet_snapshot.py --check    verify the block. Offline, index-only,
+    fleet_table.py --check    verify the block. Offline, index-only,
                                  milliseconds. Runs in ci.yml on every PR.
 
 `--check` deliberately verifies less than the writer produces. It confirms the
@@ -35,7 +35,7 @@ tell a quiet day from a busy one. For the same reason the date column pins its
 timezone here in code rather than reading the ambient TZ, so regenerating on a
 laptop in KST and on a UTC runner produce identical bytes.
 
-Stdlib only — same constraint as the rest of tools/.
+Stdlib only — same constraint as everything under `internal/`.
 """
 
 from __future__ import annotations
@@ -46,8 +46,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-TOOLS_DIR = Path(__file__).resolve().parent
-UMBRELLA_ROOT = TOOLS_DIR.parent
+# parents[2] because this sits at internal/render/, two levels down.
+UMBRELLA_ROOT = Path(__file__).resolve().parents[2]
 README = UMBRELLA_ROOT / "README.md"
 GITMODULES = UMBRELLA_ROOT / ".gitmodules"
 
@@ -237,7 +237,7 @@ def check() -> int:
         print("README fleet block does not match the pinned submodules.", file=sys.stderr)
         print(f"  in README: {[s[:7] for s in found]}", file=sys.stderr)
         print(f"  in index:  {[s[:7] for s in expected]}", file=sys.stderr)
-        print("  Fix: python3 tools/fleet_snapshot.py", file=sys.stderr)
+        print("  Fix: python3 internal/render/fleet_table.py", file=sys.stderr)
         return 1
 
     print(f"fleet snapshot ok — {len(expected)} repos pinned")
@@ -246,7 +246,7 @@ def check() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="fleet_snapshot.py",
+        prog="fleet_table.py",
         description="Render or verify the fleet snapshot block in README.md.",
     )
     parser.add_argument(

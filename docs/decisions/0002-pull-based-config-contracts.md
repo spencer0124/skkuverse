@@ -40,7 +40,7 @@ Four problems, all of which had already caused real incidents or near-misses:
 
 **Replace push with pull, pin everything by content hash, and split checks by who can fix the failure.**
 
-A registry in this repo, [`contracts/manifest.json`](../../contracts/manifest.json), declares every cross-repo contract as pointers only: repos, paths, generators, extraction patterns. No hashes and no values live in the manifest. Those belong in each consumer's `.contracts.lock.json`, written exclusively by [`tools/skkuverse_sync.py`](../../tools/skkuverse_sync.py). The manifest therefore changes only when the set of contracts changes.
+A registry in this repo, [`contracts/manifest.json`](../../contracts/manifest.json), declares every cross-repo contract as pointers only: repos, paths, generators, extraction patterns. No hashes and no values live in the manifest. Those belong in each consumer's `.contracts.lock.json`, written exclusively by [`exported/sync_contracts.py`](../../exported/sync_contracts.py). The manifest therefore changes only when the set of contracts changes.
 
 Three check edges, split by severity and owner:
 
@@ -64,7 +64,7 @@ Directional contracts use a relation rather than equality. `notices.topic-cap` i
 - ✅ A class of previously undetectable bugs is caught. Adding a fixed notice tab without updating the app's mirror was documented as "self-detection impossible" — the symptom was zero notifications for that tab, with no error. It is now a hash mismatch.
 - ✅ No credentials anywhere. Every repo is public, so pull needs no token, and the freshness cron opens a PR against its *own* repo using the built-in `GITHUB_TOKEN`. There is no cross-repo PAT in the system.
 - ✅ The producer's artifacts are committed and reviewable, so a config change shows its downstream consequence in the producer's PR.
-- ⚠️ **This repo is now a build dependency of four others.** They clone `tools/` at `main` during CI, unpinned. A bad commit here reddens four pipelines at once. Accepted deliberately: pinning would mean bumping a version in four repos on every tool change, which is the manual version management this decision exists to remove. The blast radius is bounded by this repo's own CI (unit tests plus `validate-manifest` on every PR), and recovery is a single revert.
+- ⚠️ **This repo is now a build dependency of four others.** They clone `exported/` at `main` during CI, unpinned. A bad commit here reddens four pipelines at once. Accepted deliberately: pinning would mean bumping a version in four repos on every tool change, which is the manual version management this decision exists to remove. The blast radius is bounded by this repo's own CI (unit tests plus `validate-manifest` on every PR), and recovery is a single revert.
 - ⚠️ **Adopting a new contract needs an ordering.** The consumer's lock lands first, the manifest activation second. `check` therefore tolerates a lock entry that is ahead of its activation and fails only on entries the manifest no longer declares at all. Reversing the order breaks each consumer's default branch for the window in between.
 - ⚠️ **Freshness is deliberately not blocking.** A consumer being behind is a working system rather than a broken one, and it is not fixable in the branch that would go red. That is the governing rule stated in [CLAUDE.md](../../CLAUDE.md#constraints-that-are-not-negotiable) applied to this edge.
 

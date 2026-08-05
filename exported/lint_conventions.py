@@ -3,7 +3,7 @@
 
 Some conventions are files, and those are handled as contracts: the umbrella
 owns `conventions/markdownlint.jsonc` and `conventions/docs-template.md`, each
-repo vendors a copy, and the hash lock plus `skkuverse_sync.py check` already
+repo vendors a copy, and the hash lock plus `sync_contracts.py check` already
 make drift a build failure. Nothing new is needed for them.
 
 The rest are *properties of a repo's own files*, and no copy can express them:
@@ -16,15 +16,15 @@ This checks those. It reads only the repo it is pointed at, so it is offline
 and therefore safe to block a merge on, under the governing rule in CLAUDE.md.
 
 Prose style is a separate concern with its own tooling, in `.vale.ini` and
-`prose_metrics.py`. Neither runs in a sibling's CI, because a sibling should
+`prose.py`. Neither runs in a sibling's CI, because a sibling should
 not go red over a style opinion formed in the umbrella.
 
-    python3 conventions_lint.py --root .              everything
-    python3 conventions_lint.py --root . --only language
+    python3 lint_conventions.py --root .              everything
+    python3 lint_conventions.py --root . --only language
 
 Consumers run it from the umbrella clone their CI already makes for
-`skkuverse_sync.py`, so adopting it costs about two lines of YAML and no new
-dependency. Stdlib only, like the rest of tools/.
+`sync_contracts.py`, so adopting it costs about two lines of YAML and no new
+dependency. Stdlib only, like everything in `exported/`.
 
 Repo-specific exemptions live in `.conventions.json` at the repo root, not
 here — a central file listing every sibling's exceptions would be a second
@@ -222,7 +222,7 @@ CHECKS = {
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="conventions_lint.py",
+        prog="lint_conventions.py",
         description="Check a repo against the shared SKKUverse conventions.",
     )
     parser.add_argument("--root", default=".", help="the repo to check (default: .)")

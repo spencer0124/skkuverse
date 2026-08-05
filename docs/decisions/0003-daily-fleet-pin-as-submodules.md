@@ -60,7 +60,7 @@ The generated README block must remain a pure function of the pinned SHAs. Any t
 - ✅ The question that prompted this now has an exact answer, and any commit expands back into the real code of all six repos via `git submodule update --init`.
 - ✅ Immune to upstream force-pushes. `--remote` never reads the recorded SHA, so a rewritten sibling history cannot break the daily run.
 - ✅ No credential is introduced. All six repos are public, so the pin needs no token, and the only credential in play is this repo's own `GITHUB_TOKEN` pushing to this repo. ADR 0002's no-cross-repo-PAT property is preserved.
-- ✅ No effect on consumers. `skkuverse-server`, `-app` and `-ai` fetch `tools/` with `git clone --depth 1`, which never initialises submodules, and no workflow in the fleet uses `--recurse-submodules`.
+- ✅ No effect on consumers. `skkuverse-server`, `-app` and `-ai` fetch `exported/` with `git clone --depth 1`, which never initialises submodules, and no workflow in the fleet uses `--recurse-submodules`.
 - ⚠️ **All six repos must stay public.** The day one goes private, the workflow either breaks or you introduce exactly the cross-repo PAT ADR 0002 exists to avoid. The recommended response is to drop that repo from the snapshot, not to add the token.
 - ⚠️ **A missed run is unrecoverable.** If GitHub drops a scheduled run, that day's state cannot be reconstructed later — that is the whole premise. Daily commits at least make the gap *visible* as a missing date.
 - ⚠️ **A renamed sibling fails silently.** GitHub's redirects keep git working while the `url` in `.gitmodules` quietly becomes wrong. This is the only silent failure in the design.
@@ -77,10 +77,10 @@ The generated README block must remain a pure function of the pinned SHAs. Any t
 
 **Change-only commits.** They answer the question just as exactly, because the last snapshot at or before a date gives that date's state when nothing moved in between. Rejected in favour of a daily heartbeat, which also proves the job ran and keeps the workflow out of GitHub's 60-day inactivity auto-disable.
 
-**Submodule directories above `tools/`.** Rejected. A column of pointer directories would push `tools/` below the fold on the repository's front page, and `tools/` gates several other repos' CI.
+**Submodule directories above the tooling.** Rejected. A column of pointer directories would push the exported scripts below the fold on the repository's front page, and those gate several other repos' CI.
 
 ## Related
 
 - [Container View §The fourth seam](../architecture/container-view.md#the-fourth-seam-a-daily-pin-of-the-whole-fleet)
 - [ADR 0002, pull-based config contracts](0002-pull-based-config-contracts.md) — the no-cross-repo-PAT property this preserves
-- `.github/workflows/fleet-snapshot.yml`, `tools/fleet_snapshot.py`
+- `.github/workflows/fleet-snapshot.yml`, `internal/render/fleet_table.py`

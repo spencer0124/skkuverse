@@ -1,10 +1,10 @@
 name: CI
 
-# Four repos clone tools/ from main and run it as a blocking CI gate, so a bug
-# here reddens the whole fleet at once. This job is what keeps that acceptable:
-# the tool is unpinned on purpose (pinning would mean bumping a version in four
-# repos on every tool change — the manual version management this system exists
-# to remove), so its blast radius is bounded here instead.
+# Other repos clone exported/ from main and run it as a blocking CI gate, so a
+# bug there reddens the whole fleet at once. This job is what keeps that
+# acceptable: the scripts are unpinned on purpose (pinning would mean bumping a
+# version in every consumer on each change — the manual version management this
+# system exists to remove), so the damage is bounded here instead.
 on:
   pull_request:
     branches: [main]
@@ -14,27 +14,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # No setup-python: ubuntu-latest ships python3 and the tool is
-      # stdlib-only. That is the whole reason consumers can adopt it without
+      # No setup-python: ubuntu-latest ships python3 and the scripts are
+      # stdlib-only. That is the whole reason consumers can adopt them without
       # touching their dependency manifests.
-      - run: python3 -m unittest discover -s tools/tests -v
-      - run: python3 tools/skkuverse_sync.py validate-manifest
+      - run: python3 -m unittest discover -s tests -v
+      - run: python3 exported/sync_contracts.py validate-manifest
       # Offline and index-only, so it costs nothing here even though this job
       # checks out with submodules off. Not optional: the daily cron
       # regenerates the README block only when a pin actually moved, so it
       # will never silently correct a hand-edited one.
-      - run: python3 tools/fleet_snapshot.py --check
+      - run: python3 internal/render/fleet_table.py --check
       # Same reasoning, for the table generated from the manifest. This one
       # verifies completely rather than partially, because every input is a
       # file in this repository.
-      - run: python3 tools/contracts_table.py --check
+      - run: python3 internal/render/contracts_table.py --check
       # And for the document index, which is built from each document's own
       # frontmatter. This is what makes a new document impossible to leave
       # out: nothing has to be registered, so nothing can be forgotten.
-      - run: python3 tools/docs_index.py --check
+      - run: python3 internal/render/docs_index.py --check
       # The repo that defines the conventions has to satisfy them, or nobody
       # else has a reason to. Same command the siblings run.
-      - run: python3 tools/conventions_lint.py --root .
+      - run: python3 exported/lint_conventions.py --root .
 
   # Split from `tools` because it needs a different binary and fails for a
   # different reason. A red `tools` job means the fleet's contract tooling is
@@ -49,9 +49,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # A single static Go binary, so there is no runtime to install and
-      # nothing for the siblings to adopt. Vale never enters tools/ - that is
-      # what keeps tools/ stdlib-only Python while the fleet still gets a
-      # prose gate.
+      # nothing for the siblings to adopt. Vale never enters exported/ - that
+      # is what keeps the exported scripts stdlib-only Python while the fleet
+      # still gets a prose gate.
       - name: Install Vale
         run: |
           curl -sfL "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
@@ -78,11 +78,10 @@ jobs:
           vale --glob='!skkuverse*/**' --output=line . | tee -a "$GITHUB_STEP_SUMMARY"
       # Bold-for-emphasis and sentence-length spread. Both need the markup or a
       # statistic Vale cannot reach, so they live in stdlib Python instead.
-      # Deliberately not part of conventions_lint.py: that one is a blocking
-      # gate inside three sibling repos, and a sibling should not go red over a
-      # style opinion formed here.
+      # This one is under internal/ rather than exported/ for a reason: it is a
+      # style opinion formed here, and a sibling should not go red over one.
       - name: Prose metrics
         shell: bash
         run: |
           set -o pipefail
-          python3 tools/prose_metrics.py --root . | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 internal/check/prose.py --root . | tee -a "$GITHUB_STEP_SUMMARY"

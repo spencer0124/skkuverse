@@ -109,7 +109,7 @@ jobs:
       # README diff. The generator has no time-relative columns precisely so
       # this holds.
       - name: Regenerate the fleet snapshot
-        run: python3 tools/fleet_snapshot.py
+        run: python3 internal/render/fleet_table.py
 
       - name: Commit and push
         shell: bash
