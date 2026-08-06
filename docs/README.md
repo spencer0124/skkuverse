@@ -85,6 +85,7 @@ document cannot be left out by forgetting to register it.
 | [Notice Data Ownership Across Writers](decisions/0001-notice-data-ownership.md) | adr | The crawler, the AI service and the server all touch the `skku_notices.notices` collection. This is the cross-repo contract for what each of them owns, and rep… |
 | [Pull-Based Config Contracts with Content Hashes](decisions/0002-pull-based-config-contracts.md) | adr | Configuration owned by one repo and vendored by others used to be pushed across repo boundaries by a script whose failure mode was silence. It is now pulled, p… |
 | [Daily Fleet Pin as Git Submodules](decisions/0003-daily-fleet-pin-as-submodules.md) | adr | Every repo's `main` is pinned as a submodule at the repository root once a day and committed, making this repository's history a day-by-day record of what the… |
+| [Event Map Layer Ownership Across Repos](decisions/0004-event-map-layer-ownership.md) | adr | A temporary event map is drawn by four repos at once, so this records which of them decides what. The build itself is tracked in skkuverse#11. |
 
 ### exported
 
