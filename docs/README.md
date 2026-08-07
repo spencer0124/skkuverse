@@ -86,6 +86,8 @@ document cannot be left out by forgetting to register it.
 | [Pull-Based Config Contracts with Content Hashes](decisions/0002-pull-based-config-contracts.md) | adr | Configuration owned by one repo and vendored by others used to be pushed across repo boundaries by a script whose failure mode was silence. It is now pulled, p… |
 | [Daily Fleet Pin as Git Submodules](decisions/0003-daily-fleet-pin-as-submodules.md) | adr | Every repo's `main` is pinned as a submodule at the repository root once a day and committed, making this repository's history a day-by-day record of what the… |
 | [Event Map Layer Ownership Across Repos](decisions/0004-event-map-layer-ownership.md) | adr | A temporary event map is drawn by four repos at once, so this records which of them decides what. The build itself is tracked in skkuverse#11. |
+| [Web Surfaces in a Dedicated Repository](decisions/0005-web-surfaces-dedicated-repo.md) | adr | Every browser surface moves out of the React Native monorepo into `skkuverse-web`, because what the web app shares with the native one is a message contract ra… |
+| [Console Identity and Authorization](decisions/0006-console-identity.md) | adr | The admin console serves external users who sign themselves up, so identity reuses the ecosystem's existing auth provider and every authorization decision is a… |
 
 ### exported
 
