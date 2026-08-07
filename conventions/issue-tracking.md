@@ -82,7 +82,7 @@ that a project field gives away. Work with no release date takes no milestone.
 
 ## The project and its views
 
-[The SKKUverse project](https://github.com/users/spencer0124/projects) holds every open issue
+[The SKKUverse project](https://github.com/users/spencer0124/projects/1) holds the open issues
 and adds what labels and milestones cannot express.
 
 | Field | Type | Carries |
@@ -100,8 +100,12 @@ Built-in workflows keep the project current. A newly opened issue is added autom
 Closing an issue, or merging its linked pull request, sets `Status` to Done.
 
 Views are saved combinations of layout, filter, grouping and sort. They hold no data, so
-deleting one loses nothing, and the sensible number is however many questions get asked. Views
-can only be created in the browser, since the API exposes them read-only.
+deleting one loses nothing, and the sensible number is however many questions get asked.
+
+Parts of a project exist only in the browser. `gh project` adds a field but cannot rewrite the
+options on one that already exists, which covers the pre-made `Status` field and its default
+three values. Neither the built-in workflows nor the views have a command-line equivalent, and
+the API exposes views read-only.
 
 ## Filing an issue
 
@@ -126,6 +130,10 @@ gh api repos/spencer0124/skkuverse/milestones \
 **Transferring an issue drops labels the destination lacks.** `gh issue transfer` keeps the
 body, the comments and a redirect from the old number, and silently discards any label absent
 by that name. Re-apply labels afterwards.
+
+**Adding a parent issue to a project pulls in its sub-issues.** The whole tree arrives, closed
+children included, so an epic added alone brings every phase it tracks and the project holds
+more than the open list.
 
 **An issue template can only apply a label that exists.** `task.yml` in
 [`spencer0124/.github`](https://github.com/spencer0124/.github) declares `labels: [task]`, and
