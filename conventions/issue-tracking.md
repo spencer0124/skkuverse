@@ -16,9 +16,10 @@ audience: public
 ## One tracker for the fleet
 
 Issues are opened in [the umbrella](https://github.com/spencer0124/skkuverse/issues) whatever
-repository the change is made in. Sibling repositories keep their issue tabs enabled so their
-closed history stays readable, and the shared template config in
-[`spencer0124/.github`](https://github.com/spencer0124/.github) links back here.
+repository the change is made in. The siblings hold no issues at all: their closed history was
+transferred here on 2026-08-07, so one search now covers the fleet's whole record. The shared
+template config in [`spencer0124/.github`](https://github.com/spencer0124/.github) links back
+here.
 
 Most work in this ecosystem is not repo-shaped. One change often reaches the server, the app
 and the webview together. An issue filed in any one of them then describes a fraction of
@@ -129,7 +130,14 @@ gh api repos/spencer0124/skkuverse/milestones \
 
 **Transferring an issue drops labels the destination lacks.** `gh issue transfer` keeps the
 body, the comments and a redirect from the old number, and silently discards any label absent
-by that name. Re-apply labels afterwards.
+by that name. Re-apply labels afterwards. Nine issues moved here in one pass and every one of
+them arrived bare.
+
+**Transfer rewrites issue references, and gets them right.** A transferred body reading `#91`
+arrives as `spencer0124/skkuverse#37`, following the target to wherever it moved. That is the
+qualified form [cross-repo-references.md](cross-repo-references.md) requires, so moved text
+needs no hand editing. A reference typed by a person gets no such help, which is what that
+page is about.
 
 **Adding a parent issue to a project pulls in its sub-issues.** The whole tree arrives, closed
 children included, so an epic added alone brings every phase it tracks and the project holds
