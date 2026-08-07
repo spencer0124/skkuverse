@@ -26,6 +26,11 @@
       "github": "spencer0124/skkuverse",
       "branch": "main",
       "dir": "skkuverse"
+    },
+    "web": {
+      "github": "spencer0124/skkuverse-web",
+      "branch": "main",
+      "dir": "skkuverse-web"
     }
   },
   "contracts": [
@@ -229,6 +234,91 @@
       ],
       "note": "Three copies exist today; server's and app's are byte-identical except for last-updated, and the umbrella's is an English rewrite. The propagation chain was app -> server -> umbrella by manual copy, which is exactly the pattern the contract system replaces.",
       "blockedBy": "Same ordering as conventions.markdownlint. Also needs the Korean skeleton comments in the consumer copies replaced by the umbrella's English version."
+    },
+    {
+      "id": "bridge.message-types",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "app",
+        "path": "packages/bridge/src/types.ts"
+      },
+      "consumers": [
+        {
+          "repo": "web",
+          "path": "packages/bridge/src/types.ts",
+          "mode": "copy"
+        }
+      ],
+      "note": "The message union a web view may send and the app may receive. web vendors it because the app's package is workspace-private and unpublished. Drift is silent in both directions: parseWebMessage drops an unrecognised type and returns null, so a message the app no longer knows about does nothing at all and raises nothing. Only types.ts is a contract - sender.ts is a three-line platform binding each side owns, and parseWebMessage has no web-side caller."
+    },
+    {
+      "id": "design.colors",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "app",
+        "path": "packages/shared/src/tokens/colors.ts"
+      },
+      "consumers": [
+        {
+          "repo": "web",
+          "path": "packages/tokens/src/colors.ts",
+          "mode": "copy"
+        }
+      ],
+      "note": "The palette both design systems render. Before this contract the web view carried these values as hex literals with no import, so a palette change on the app side was invisible until someone compared screenshots. The file is standalone with no imports, which is what makes a byte copy viable."
+    },
+    {
+      "id": "design.typography",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "app",
+        "path": "packages/shared/src/tokens/typography.ts"
+      },
+      "consumers": [
+        {
+          "repo": "web",
+          "path": "packages/tokens/src/typography.ts",
+          "mode": "copy"
+        }
+      ],
+      "note": "Shape is React Native idiomatic: lineHeight is absolute px as a number and fontWeight is a string union. web converts to CSS in its own adapter module rather than editing the copy, so this stays a byte copy."
+    },
+    {
+      "id": "design.spacing",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "app",
+        "path": "packages/shared/src/tokens/spacing.ts"
+      },
+      "consumers": [
+        {
+          "repo": "web",
+          "path": "packages/tokens/src/spacing.ts",
+          "mode": "copy"
+        }
+      ],
+      "note": "Unitless numbers, so the web adapter appends px. Registered separately from colors because the tool's file contracts carry one producer path each, and a directory has no single hash."
+    },
+    {
+      "id": "design.radius",
+      "kind": "file",
+      "status": "active",
+      "producer": {
+        "repo": "app",
+        "path": "packages/shared/src/tokens/radius.ts"
+      },
+      "consumers": [
+        {
+          "repo": "web",
+          "path": "packages/tokens/src/radius.ts",
+          "mode": "copy"
+        }
+      ],
+      "note": "Same shape and adapter as spacing. The producer's sibling token files shadows.ts and duration.ts are deliberately not vendored: their payloads are React Native shadow props and a Reanimated bezier tuple, and vendoring a file no consumer reads adds a gate to maintain for nothing."
     }
   ]
 }
