@@ -36,6 +36,7 @@ entry and nothing else.
 | [`markdownlint.jsonc`](markdownlint.jsonc) | Markdown structure and formatting rules |
 | [`prose.md`](prose.md) | Writing style, and what the linters cannot judge |
 | [`cross-repo-references.md`](cross-repo-references.md) | Linking commits and issues between repositories, where an unqualified reference resolves to the wrong object |
+| [`branching.md`](branching.md) | Committing to `dev` by default, when a `feat/` branch earns its cost, and the cleanup that follows |
 
 Whether a contract is enforced yet is state, so it is not written down here. The generated
 table on the [landing page](../README.md#how-changes-propagate) is the answer, and CI
