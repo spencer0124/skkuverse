@@ -22,3 +22,7 @@
 	path = skkuverse-codepush
 	url = https://github.com/spencer0124/skkuverse-codepush.git
 	branch = main
+[submodule "skkuverse-web"]
+	path = skkuverse-web
+	url = https://github.com/spencer0124/skkuverse-web.git
+	branch = main
