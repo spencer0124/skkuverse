@@ -78,6 +78,7 @@ document cannot be left out by forgetting to register it.
 | [Shared Conventions](../conventions/README.md) | reference | Rules that apply to every SKKUverse repository, defined once here and enforced in each repo's CI. Conventions that are files travel as contracts. Conventions t… |
 | [Branching](../conventions/branching.md) | reference | Commit to `dev`, and reach `main` by pull request. A separate branch is the exception, and this page names the cases that earn one. |
 | [Cross-Repository References](../conventions/cross-repo-references.md) | reference | How to link across SKKUverse repositories, and why an unqualified reference resolves to the wrong object rather than failing visibly. |
+| [Issue Tracking](../conventions/issue-tracking.md) | reference | Every issue in the fleet is filed in the umbrella repository, and GitHub's tracking primitives each carry one axis of the work. This page says which axis goes… |
 | [Prose Conventions](../conventions/prose.md) | reference | The writing rules are executable. `../.vale.ini` and `../styles/skkuverse/` are the rules themselves, and CI runs them. This page covers only what a linter can… |
 
 ### decisions
