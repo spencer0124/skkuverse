@@ -2,6 +2,8 @@
 
 Coordination repo for the SKKUverse ecosystem: cross-repo documentation, shared conventions, and config contracts.
 
+[📋 Project Board](https://github.com/users/spencer0124/projects/1)
+
 SKKUverse is a campus app for Sungkyunkwan University. Each repository below releases on
 its own schedule. A Python ingest plane crawls and summarises department notices, a NestJS
 serving plane reads and serves them, and the two planes meet through a single MongoDB
@@ -21,8 +23,10 @@ commit can redden several pipelines at once.
 | [skkuverse.com] | Marketing and landing site | client |
 | [skkuverse-codepush] | Self-hosted OTA update server for the app's JS bundle | infrastructure |
 
-File a bug against the repository it lives in. Open an issue here only about this
-repository's own documentation or tooling.
+Issues for the whole fleet are filed here, whatever repository the change is made in, and
+the board above is the view across them.
+[conventions/issue-tracking.md](conventions/issue-tracking.md) covers which label,
+milestone or project field carries which part of the description.
 
 ## How changes propagate
 
