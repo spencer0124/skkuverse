@@ -39,6 +39,8 @@ repository boundaries.
 | Contract | Owned by | Vendored into | Enforced |
 | --- | --- | --- | --- |
 | `bridge.message-types` | [app] `packages/bridge/src/types.ts` | [web] `packages/bridge/src/types.ts` | yes |
+| `conventions.docs-template` | [umbrella] `docs/_template.md` | [server] `docs/_template.md`, [app] `docs/_template.md` | yes |
+| `conventions.markdownlint` | [umbrella] `conventions/markdownlint.jsonc` | [server] `.markdownlint.jsonc`, [app] `.markdownlint.jsonc` | yes |
 | `design.colors` | [app] `packages/shared/src/tokens/colors.ts` | [web] `packages/tokens/src/colors.ts` | yes |
 | `design.radius` | [app] `packages/shared/src/tokens/radius.ts` | [web] `packages/tokens/src/radius.ts` | yes |
 | `design.spacing` | [app] `packages/shared/src/tokens/spacing.ts` | [web] `packages/tokens/src/spacing.ts` | yes |
@@ -48,12 +50,10 @@ repository boundaries.
 | `notices.sources` | [crawler] `py/generated/server-sources.json` | [server] `src/notices/sources.json` | yes |
 | `notices.tab-keys` | [crawler] `py/generated/server-categories.json` | [app] `functions/src/notifications/tabsContract.generated.ts` | yes |
 | `notices.topic-cap` | [app] `functions/src/notifications/tabsContract.ts` | [server] `src/notices/notices.topics.ts` | yes |
-| `conventions.docs-template` | [umbrella] `docs/_template.md` | [server] `docs/_template.md`, [app] `docs/_template.md` | not yet |
-| `conventions.markdownlint` | [umbrella] `conventions/markdownlint.jsonc` | [server] `.markdownlint.jsonc`, [app] `.markdownlint.jsonc` | not yet |
 | `search.config` | [crawler] `search.json` | [ai] `app/generated/search.json`, [server] `src/notices/search.json` | not yet |
 | `search.source-whitelist` | [crawler] `py/generated/ai-sources.json` | [ai] `app/generated/sources.json` | not yet |
 
-14 contracts — 10 active, 4 planned.
+14 contracts — 12 active, 2 planned.
 
 [ai]: https://github.com/spencer0124/skkuverse-ai
 [app]: https://github.com/spencer0124/skkuverse-app

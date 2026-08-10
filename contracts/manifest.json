@@ -192,7 +192,7 @@
     {
       "id": "conventions.markdownlint",
       "kind": "file",
-      "status": "planned",
+      "status": "active",
       "producer": {
         "repo": "umbrella",
         "path": "conventions/markdownlint.jsonc"
@@ -209,13 +209,12 @@
           "mode": "copy"
         }
       ],
-      "note": "The producer carries the rule set only. Each repo keeps its own .markdownlint-cli2.jsonc naming which paths to lint, and `extends` this vendored block. See conventions/README.md for why the seam falls there.",
-      "blockedBy": "Consumers do not vendor the file yet. Land the copy plus its lock entry in each repo first, then flip to active - a lock ahead of activation is safe, the reverse breaks the consumer's default branch."
+      "note": "The producer carries the rule set only. Each repo keeps its own .markdownlint-cli2.jsonc naming which paths to lint, and `extends` this vendored block. See conventions/README.md for why the seam falls there."
     },
     {
       "id": "conventions.docs-template",
       "kind": "file",
-      "status": "planned",
+      "status": "active",
       "producer": {
         "repo": "umbrella",
         "path": "docs/_template.md"
@@ -232,8 +231,7 @@
           "mode": "copy"
         }
       ],
-      "note": "Three copies exist today; server's and app's are byte-identical except for last-updated, and the umbrella's is an English rewrite. The propagation chain was app -> server -> umbrella by manual copy, which is exactly the pattern the contract system replaces.",
-      "blockedBy": "Same ordering as conventions.markdownlint. Also needs the Korean skeleton comments in the consumer copies replaced by the umbrella's English version."
+      "note": "One copy, vendored into both consumers. The propagation chain used to be app -> server -> umbrella by manual copy, which is exactly the pattern the contract system replaces. The producer carries a skeleton for every type the fleet writes, because mode: copy means a consumer cannot add a missing one without breaking the hash."
     },
     {
       "id": "bridge.message-types",
