@@ -31,6 +31,11 @@
       "github": "spencer0124/skkuverse-web",
       "branch": "main",
       "dir": "skkuverse-web"
+    },
+    "miniapp": {
+      "github": "spencer0124/skkuverse-miniapp",
+      "branch": "main",
+      "dir": "skkuverse-miniapp"
     }
   },
   "contracts": [
@@ -251,6 +256,28 @@
       "note": "The message union a web view may send and the app may receive. web vendors it because the app's package is workspace-private and unpublished. Drift is silent in both directions: parseWebMessage drops an unrecognised type and returns null, so a message the app no longer knows about does nothing at all and raises nothing. Only types.ts is a contract - sender.ts is a three-line platform binding each side owns, and parseWebMessage has no web-side caller."
     },
     {
+      "id": "bridge.protocol-v1",
+      "kind": "file",
+      "status": "planned",
+      "producer": {
+        "repo": "miniapp",
+        "path": "packages/miniapp/src/protocol/v1.ts"
+      },
+      "consumers": [
+        {
+          "repo": "app",
+          "path": "packages/bridge/src/types.ts",
+          "mode": "copy"
+        },
+        {
+          "repo": "web",
+          "path": "packages/bridge/src/types.ts",
+          "mode": "copy"
+        }
+      ],
+      "note": "Successor to bridge.message-types, with the producer moved from the app to skkuverse-miniapp, which publishes the file inside @skkuverse/miniapp for every miniapp to import (skkuverse-miniapp ADR 0001). Same bytes as the app's types.ts at creation, so adoption in app is a lock entry only; web catches up on appUrl and web:action when it adopts. Activation retires bridge.message-types in the same commit."
+    },
+    {
       "id": "design.colors",
       "kind": "file",
       "status": "active",
@@ -261,6 +288,11 @@
       "consumers": [
         {
           "repo": "web",
+          "path": "packages/tokens/src/colors.ts",
+          "mode": "copy"
+        },
+        {
+          "repo": "miniapp",
           "path": "packages/tokens/src/colors.ts",
           "mode": "copy"
         }
@@ -280,6 +312,11 @@
           "repo": "web",
           "path": "packages/tokens/src/typography.ts",
           "mode": "copy"
+        },
+        {
+          "repo": "miniapp",
+          "path": "packages/tokens/src/typography.ts",
+          "mode": "copy"
         }
       ],
       "note": "Shape is React Native idiomatic: lineHeight is absolute px as a number and fontWeight is a string union. web converts to CSS in its own adapter module rather than editing the copy, so this stays a byte copy."
@@ -297,6 +334,11 @@
           "repo": "web",
           "path": "packages/tokens/src/spacing.ts",
           "mode": "copy"
+        },
+        {
+          "repo": "miniapp",
+          "path": "packages/tokens/src/spacing.ts",
+          "mode": "copy"
         }
       ],
       "note": "Unitless numbers, so the web adapter appends px. Registered separately from colors because the tool's file contracts carry one producer path each, and a directory has no single hash."
@@ -312,6 +354,11 @@
       "consumers": [
         {
           "repo": "web",
+          "path": "packages/tokens/src/radius.ts",
+          "mode": "copy"
+        },
+        {
+          "repo": "miniapp",
           "path": "packages/tokens/src/radius.ts",
           "mode": "copy"
         }
