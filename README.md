@@ -41,23 +41,25 @@ repository boundaries.
 | `bridge.message-types` | [app] `packages/bridge/src/types.ts` | [web] `packages/bridge/src/types.ts` | yes |
 | `conventions.docs-template` | [umbrella] `docs/_template.md` | [server] `docs/_template.md`, [app] `docs/_template.md` | yes |
 | `conventions.markdownlint` | [umbrella] `conventions/markdownlint.jsonc` | [server] `.markdownlint.jsonc`, [app] `.markdownlint.jsonc` | yes |
-| `design.colors` | [app] `packages/shared/src/tokens/colors.ts` | [web] `packages/tokens/src/colors.ts` | yes |
-| `design.radius` | [app] `packages/shared/src/tokens/radius.ts` | [web] `packages/tokens/src/radius.ts` | yes |
-| `design.spacing` | [app] `packages/shared/src/tokens/spacing.ts` | [web] `packages/tokens/src/spacing.ts` | yes |
-| `design.typography` | [app] `packages/shared/src/tokens/typography.ts` | [web] `packages/tokens/src/typography.ts` | yes |
+| `design.colors` | [app] `packages/shared/src/tokens/colors.ts` | [web] `packages/tokens/src/colors.ts`, [miniapp] `packages/tokens/src/colors.ts` | yes |
+| `design.radius` | [app] `packages/shared/src/tokens/radius.ts` | [web] `packages/tokens/src/radius.ts`, [miniapp] `packages/tokens/src/radius.ts` | yes |
+| `design.spacing` | [app] `packages/shared/src/tokens/spacing.ts` | [web] `packages/tokens/src/spacing.ts`, [miniapp] `packages/tokens/src/spacing.ts` | yes |
+| `design.typography` | [app] `packages/shared/src/tokens/typography.ts` | [web] `packages/tokens/src/typography.ts`, [miniapp] `packages/tokens/src/typography.ts` | yes |
 | `notices.categories` | [crawler] `py/generated/server-categories.json` | [server] `src/notices/categories.json` | yes |
 | `notices.exclude-reasons` | [crawler] `py/generated/server-exclude-reasons.json` | [server] `src/notices/exclude-reasons.json` | yes |
 | `notices.sources` | [crawler] `py/generated/server-sources.json` | [server] `src/notices/sources.json` | yes |
 | `notices.tab-keys` | [crawler] `py/generated/server-categories.json` | [app] `functions/src/notifications/tabsContract.generated.ts` | yes |
 | `notices.topic-cap` | [app] `functions/src/notifications/tabsContract.ts` | [server] `src/notices/notices.topics.ts` | yes |
+| `bridge.protocol-v1` | [miniapp] `packages/miniapp/src/protocol/v1.ts` | [app] `packages/bridge/src/types.ts`, [web] `packages/bridge/src/types.ts` | not yet |
 | `search.config` | [crawler] `search.json` | [ai] `app/generated/search.json`, [server] `src/notices/search.json` | not yet |
 | `search.source-whitelist` | [crawler] `py/generated/ai-sources.json` | [ai] `app/generated/sources.json` | not yet |
 
-14 contracts — 12 active, 2 planned.
+15 contracts — 12 active, 3 planned.
 
 [ai]: https://github.com/spencer0124/skkuverse-ai
 [app]: https://github.com/spencer0124/skkuverse-app
 [crawler]: https://github.com/spencer0124/skkuverse-crawler
+[miniapp]: https://github.com/spencer0124/skkuverse-miniapp
 [server]: https://github.com/spencer0124/skkuverse-server
 [umbrella]: https://github.com/spencer0124/skkuverse
 [web]: https://github.com/spencer0124/skkuverse-web
