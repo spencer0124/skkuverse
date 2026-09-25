@@ -212,6 +212,11 @@
           "repo": "app",
           "path": ".markdownlint.jsonc",
           "mode": "copy"
+        },
+        {
+          "repo": "miniapp",
+          "path": ".markdownlint.jsonc",
+          "mode": "copy"
         }
       ],
       "note": "The producer carries the rule set only. Each repo keeps its own .markdownlint-cli2.jsonc naming which paths to lint, and `extends` this vendored block. See conventions/README.md for why the seam falls there."
@@ -232,6 +237,11 @@
         },
         {
           "repo": "app",
+          "path": "docs/_template.md",
+          "mode": "copy"
+        },
+        {
+          "repo": "miniapp",
           "path": "docs/_template.md",
           "mode": "copy"
         }

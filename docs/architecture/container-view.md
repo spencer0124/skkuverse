@@ -3,7 +3,7 @@ title: Container View
 type: explanation
 status: accepted
 owner: zoyoong124@gmail.com
-last-updated: 2026-08-05
+last-updated: 2026-09-26
 audience: public
 ---
 
@@ -38,6 +38,7 @@ graph TB
     subgraph clients["Clients"]
         app["app<br/>Expo · RN"]
         web["web<br/>Next.js"]
+        mini["miniapps<br/>Vite · React on Cloudflare Pages"]
     end
 
     mongo[("MongoDB Atlas<br/>(the bus)")]
@@ -53,6 +54,8 @@ graph TB
     cf -->|FCM| app
     app -->|read API| server
     web -->|read API| server
+    app -->|WebView + miniapp protocol| mini
+    server -->|GET /skkuverse.json, shell manifest| mini
 ```
 
 ## Responsibility and ownership
@@ -64,9 +67,12 @@ graph TB
 | server | Read API + push dispatch. **Never writes `summary*`; owns exactly one read index** | read-only (+ 1 read index) | [server docs](https://github.com/spencer0124/skkuverse-server/tree/main/docs) |
 | app | Server-driven tabs, Markdown rendering, push receipt | none (via API) | [app docs](https://github.com/spencer0124/skkuverse-app/tree/main/docs) |
 | web | Marketing site | none | (pending) |
+| miniapps | Small web apps the app opens in its mini-app shell, one repository each (`miniapp-<name>`), built on the npm packages from skkuverse-miniapp | none (via API) | [skkuverse-miniapp docs](https://github.com/spencer0124/skkuverse-miniapp/tree/main/docs) |
 | **this repo** | Cross-repo docs, shared conventions, the config-contract registry, and the daily fleet pin. `exported/sync_contracts.py` and `exported/lint_conventions.py` both run as blocking gates in consumer CI | none | [contracts/README.md](../../contracts/README.md) |
 
 ## The two runtime HTTP seams
+
+The miniapp edges in the diagram belong to the client side and do not touch the bus. The app talks to a miniapp page over the WebView's message channel. The server fetches each first-party miniapp's `skkuverse.json` so that `GET /miniapps/:id` can carry the shell the page declared. The two seams below are the ones between the planes.
 
 - **① crawler → ai** (`POST /api/notices/summarize`): inside the Docker network, unauthenticated (isolation is the network's job). The only path by which a summary gets attached.
 - **② crawler → server** (`POST /internal/notices/dispatch-pending`): a fire-and-forget ping at the end of each cycle, authenticated with `X-Internal-Token`. A server-side cron sweep runs in parallel as a safety net.
@@ -89,6 +95,8 @@ graph LR
     cgen -->|generate| appgen
     cap -->|ceiling, TOPIC_CAP <= MAX_TOPICS| srvcap
 ```
+
+The design tokens take the same route to the web. The app's `packages/shared/src/tokens` files are copied into skkuverse-web and into skkuverse-miniapp's `@skkuverse/tokens`, which every miniapp installs from npm. The miniapp protocol is the exception to copying: the app imports it from npm as `@skkuverse/miniapp/protocol`, and only the server keeps a tested copy of its manifest parser.
 
 Properties worth noting:
 
