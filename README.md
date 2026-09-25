@@ -20,6 +20,7 @@ commit can redden several pipelines at once.
 | [skkuverse-crawler] | Crawls and cleans department notices and the academic calendar | ingest |
 | [skkuverse-ai] | Structured summaries of notice bodies. Stateless, no database access | ingest |
 | [skkuverse-app] | Mobile client. Live shuttle, notice feed, building search | client |
+| [skkuverse-miniapp] | SDK, design system and protocol for the web miniapps the app hosts, published to npm | client |
 | [skkuverse.com] | Marketing and landing site | client |
 | [skkuverse-codepush] | Self-hosted OTA update server for the app's JS bundle | infrastructure |
 
@@ -39,8 +40,8 @@ repository boundaries.
 | Contract | Owned by | Vendored into | Enforced |
 | --- | --- | --- | --- |
 | `bridge.message-types` | [app] `packages/bridge/src/types.ts` | [web] `packages/bridge/src/types.ts` | yes |
-| `conventions.docs-template` | [umbrella] `docs/_template.md` | [server] `docs/_template.md`, [app] `docs/_template.md` | yes |
-| `conventions.markdownlint` | [umbrella] `conventions/markdownlint.jsonc` | [server] `.markdownlint.jsonc`, [app] `.markdownlint.jsonc` | yes |
+| `conventions.docs-template` | [umbrella] `docs/_template.md` | [server] `docs/_template.md`, [app] `docs/_template.md`, [miniapp] `docs/_template.md` | yes |
+| `conventions.markdownlint` | [umbrella] `conventions/markdownlint.jsonc` | [server] `.markdownlint.jsonc`, [app] `.markdownlint.jsonc`, [miniapp] `.markdownlint.jsonc` | yes |
 | `design.colors` | [app] `packages/shared/src/tokens/colors.ts` | [web] `packages/tokens/src/colors.ts`, [miniapp] `packages/tokens/src/colors.ts` | yes |
 | `design.radius` | [app] `packages/shared/src/tokens/radius.ts` | [web] `packages/tokens/src/radius.ts`, [miniapp] `packages/tokens/src/radius.ts` | yes |
 | `design.spacing` | [app] `packages/shared/src/tokens/spacing.ts` | [web] `packages/tokens/src/spacing.ts`, [miniapp] `packages/tokens/src/spacing.ts` | yes |
@@ -176,4 +177,5 @@ both generated tables and checks this repository against the conventions it defi
 [skkuverse-app]: https://github.com/spencer0124/skkuverse-app
 [skkuverse.com]: https://github.com/spencer0124/skkuverse.com
 [skkuverse-codepush]: https://github.com/spencer0124/skkuverse-codepush
+[skkuverse-miniapp]: https://github.com/spencer0124/skkuverse-miniapp
 [dotgithub]: https://github.com/spencer0124/.github
